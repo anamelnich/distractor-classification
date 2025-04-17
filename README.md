@@ -4,7 +4,7 @@ This project implements an LDA classification for detecting Pd component from EE
 It is designed for use in neurofeedback and brain-computer interface (BCI) systems.
 
 ## Repository Structure
-
+```text
 distractor-classification/
 ├── code/
 │   ├── functions/              # Utility functions
@@ -17,7 +17,7 @@ distractor-classification/
 │       └── singleClassificationRight.m 
 ├── data/                       # Sample data
 └── README.md
-
+```
 ---
 
 ## How It Works
