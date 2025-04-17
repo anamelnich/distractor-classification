@@ -1,0 +1,169 @@
+function computeModel(subjectID)
+%%%%%%%%%%%%%%%%%%%%
+%% Initialization %%
+%%%%%%%%%%%%%%%%%%%%
+clearvars -except subjectID;
+close all; clc; rng('default');
+addpath(genpath('../functions'));
+
+%%%%%%%%%%%%%%%%%%
+%% Load dataset %%
+%%%%%%%%%%%%%%%%%%
+dataPath = [pwd '/../../data/'];
+data = loadData(dataPath, subjectID);
+delete sopen.mat
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%% Set data structure %%                   
+%%%%%%%%%%%%%%%%%%%%%%%%
+cfg = setParams(data.training1.header);
+
+fields = fieldnames(data);
+for i = 1:numel(fields)
+    fname = fields{i};
+    if isempty(data.(fname))
+        data = rmfield(data, fname);
+        continue;
+    end
+    data.(fname) = preprocessDataset(data.(fname), cfg,fname,1);
+end
+fields = fieldnames(data);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Remove non-EEG channels %%                   
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+chanRemove = {'M1','M2','EOG','FP1','FP2','FPZ'};
+chanIndices = find(ismember(cfg.chanLabels,chanRemove));
+cfg.chanLabels(chanIndices) = [];
+for i = 1:numel(fields)
+    fname = fields{i};
+    data.(fname).data(:, chanIndices) = [];
+end
+%%%%%%%%%%%%%%%%%%%%%
+%% Spectral filter %%                   
+%%%%%%%%%%%%%%%%%%%%%
+[b,a] = butter(cfg.spectralFilter.order, cfg.spectralFilter.freqs./(cfg.fsamp/2), 'bandpass');
+cfg.spectralFilter.b = b;
+cfg.spectralFilter.a = a;
+for i = 1:numel(fields)
+    fname = fields{i};
+    data.(fname).data(:,:) = filter(b,a,data.(fname).data(:,:));
+end
+
+%%%%%%%%%%%%%%
+%% Epoching %%
+%%%%%%%%%%%%%%
+for i = 1:numel(fields)
+    fname = fields{i};
+    dataStruct = data.(fname);
+    epochs.data = nan(length(cfg.epochSamples), length(cfg.chanLabels), length(dataStruct.index.pos));
+    epochs.labels = dataStruct.index.typ;
+    epochs.file_id = nan(length(dataStruct.index.typ), 1);
+
+    for i_trial = 1:length(dataStruct.index.pos)
+        epochs.data(:, :, i_trial) = dataStruct.data(dataStruct.index.pos(i_trial) + cfg.epochSamples, :);    
+        temp = find(dataStruct.index.pos(i_trial) <= dataStruct.eof, 1, 'first');
+        epochs.file_id(i_trial) = temp;
+    end
+    data.(fname).epochs = epochs;
+    data.(fname).epochs.eof = data.(fname).eof;
+end 
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%
+%% Classification %%
+%%%%%%%%%%%%%%%%%%%%
+
+epochsForTrain = {data.training1.epochs};
+trainingData = combineEpochs(epochsForTrain);
+%%
+
+n_files = length(trainingData.eof);
+trainingData.posteriors.Left = nan(length(trainingData.labels), 1);
+trainingData.posteriors.Right = nan(length(trainingData.labels), 1);
+
+for i_file = 1:n_files
+    train_index = trainingData.file_id ~= i_file; 
+    test_index = trainingData.file_id == i_file;
+    %left side decoder
+    decoderLeft = computeDecoderLeft(trainingData.data(:, :, train_index), trainingData.labels(train_index), cfg);
+    trainingData.posteriors.Left(test_index) = singleClassificationLeft(decoderLeft, trainingData.data(:, :, test_index));
+    %right side decoder
+    decoderRight = computeDecoderRight(trainingData.data(:, :, train_index), trainingData.labels(train_index), cfg);
+    trainingData.posteriors.Right(test_index) = singleClassificationRight(decoderRight, trainingData.data(:, :, test_index));
+end
+
+%% Right side decoder
+% Distractor class: distractor left (label 2)
+% No distractor class: distractor right, no distractor (labels 1 or 0)
+trainingData.labelsforRightDecoder = trainingData.labels;
+trainingData.labelsforRightDecoder(trainingData.labels == 2) = 1;
+trainingData.labelsforRightDecoder(trainingData.labels == 1) = 0;
+% threshold = 0.50;
+[x, y, t, aucRight, opt] = perfcurve(~trainingData.labelsforRightDecoder,1-trainingData.posteriors.Right, 1, 'Prior', 'uniform');
+threshold = t(x == opt(1) & y == opt(2));
+disp(['AUC score : ' num2str(aucRight, '%.2f') ' Threshold: ' num2str(threshold, '%.2f')]);
+disp('Confusion Matrix: ');
+cmCV = confusionmat(logical(trainingData.labelsforRightDecoder), (trainingData.posteriors.Right >= threshold));
+disp('Confusion Matrix (with labels):')
+disp('--------------------------------')
+disp('            Pred=0    Pred=1')
+fprintf('True=0:       %3d       %3d\n', cmCV(1,1), cmCV(1,2));
+fprintf('True=1:       %3d       %3d\n', cmCV(2,1), cmCV(2,2));
+tnr = cmCV(1,1) / sum(cmCV(1, :));
+tpr = cmCV(2,2) / sum(cmCV(2, :));
+accuracy = (cmCV(1,1) + cmCV(2,2)) / sum(cmCV(:));
+disp(['TNR: ' num2str(tnr, '%.2f') ' TPR: ' num2str(tpr, '%.2f') ' Accuracy: ' num2str(accuracy, '%.2f')]);
+
+%% Left side decoder
+% Distractor class: distractor right (label 1)
+% No distractor class: distractor left, no distractor (labels 2 or 0)
+trainingData.labelsforLeftDecoder = trainingData.labels;
+trainingData.labelsforLeftDecoder(trainingData.labels == 2) = 0;
+% threshold = 0.50;
+[x, y, t, aucLeft, opt] = perfcurve(~trainingData.labelsforLeftDecoder,1-trainingData.posteriors.Left, 1, 'Prior', 'uniform');
+threshold = t(x == opt(1) & y == opt(2));
+disp(['AUC score : ' num2str(aucLeft, '%.2f') ' Threshold: ' num2str(threshold, '%.2f')]);
+disp('Confusion Matrix: ');
+cmCV = confusionmat(logical(trainingData.labelsforLeftDecoder), (trainingData.posteriors.Left >= threshold));
+disp('Confusion Matrix (with labels):')
+disp('--------------------------------')
+disp('            Pred=0    Pred=1')
+fprintf('True=0:       %3d       %3d\n', cmCV(1,1), cmCV(1,2));
+fprintf('True=1:       %3d       %3d\n', cmCV(2,1), cmCV(2,2));
+tnr = cmCV(1,1) / sum(cmCV(1, :));
+tpr = cmCV(2,2) / sum(cmCV(2, :));
+accuracy = (cmCV(1,1) + cmCV(2,2)) / sum(cmCV(:));
+disp(['TNR: ' num2str(tnr, '%.2f') ' TPR: ' num2str(tpr, '%.2f') ' Accuracy: ' num2str(accuracy, '%.2f')]);
+
+%% Sanity check
+[decoderLeft,modeloutputLeft] = computeDecoderLeft(trainingData.data, trainingData.labels, cfg);
+[trainingData.posteriors.Left, classoutputLeft] = singleClassificationLeft(decoderLeft, trainingData.data);
+if isequal(modeloutputLeft, classoutputLeft)
+    disp('Preprocessing is the same for left side decoder.');
+else
+    disp('Preprocessing is NOT the same for left side decoder.');
+    
+end
+cm = confusionmat(logical(trainingData.labelsforLeftDecoder), (trainingData.posteriors.Left >= threshold));
+tnr = cm(1,1) / sum(cm(1, :));
+tpr = cm(2,2) / sum(cm(2, :));
+accuracy = (cm(1,1) + cm(2,2)) / sum(cm(:));
+disp(['TNR: ' num2str(tnr, '%.2f') ' TPR: ' num2str(tpr, '%.2f') ' Accuracy: ' num2str(accuracy, '%.2f')]);
+
+[decoderRight,modeloutputRight] = computeDecoderRight(trainingData.data, trainingData.labels, cfg);
+[trainingData.posteriors.Right, classoutputRight] = singleClassificationRight(decoderRight, trainingData.data, trainingData.labels, 0, decoderRight.leftElectrodeIndices,decoderRight.rightElectrodeIndices);
+if isequal(modeloutputRight, classoutputRight)
+    disp('Preprocessing is the same for right side decoder.');
+else
+    disp('Preprocessing is NOT the same for right side decoder.');
+end
+cm = confusionmat(logical(trainingData.labelsforRightDecoder), (trainingData.posteriors.Right >= threshold));
+tnr = cm(1,1) / sum(cm(1, :));
+tpr = cm(2,2) / sum(cm(2, :));
+accuracy = (cm(1,1) + cm(2,2)) / sum(cm(:));
+disp(['TNR: ' num2str(tnr, '%.2f') ' TPR: ' num2str(tpr, '%.2f') ' Accuracy: ' num2str(accuracy, '%.2f')]);
+
+
+end
