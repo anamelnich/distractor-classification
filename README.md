@@ -43,3 +43,6 @@ distractor-classification/
 ### 4. **Model Evaluation**
 - Computes ROC and optimal threshold
 - Outputs confusion matrix, AUC, TPR, TNR, and Accuracy
+  
+---
+Note: EEG data was recorded from the author for demonstration purposes.
