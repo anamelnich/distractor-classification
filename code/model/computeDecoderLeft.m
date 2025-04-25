@@ -7,23 +7,49 @@ function [decoder, classifierEpochs] = computeDecoderLeft(trainEpochs, trainLabe
 %   classifierEpochs  - feature matrix used to train the model
 
 %% ==================== Baseline Correction ==================== %%
-baseline_window = [-0.2, 0];
-baseline_idx = find(params.epochTime >= baseline_window(1) & params.epochTime <= baseline_window(2));
-baseline = mean(trainEpochs(baseline_idx, :, :), 1);
-trainEpochs = trainEpochs - baseline;
+if params.baseline_iscompute
+    baseline_window = params.baseline_window;
+    baseline_idx = find(params.epochTime >= baseline_window(1) & params.epochTime <= baseline_window(2));
+    baseline = mean(trainEpochs(baseline_idx, :, :), 1);
+    trainEpochs = trainEpochs - baseline;
+end 
 
 %% ==================== ROI Selection ==================== %%
-LeftElectrodes  = {'P1', 'P3', 'P5', 'P7', 'PO3', 'PO5', 'PO7'};
-RightElectrodes = {'P2', 'P4', 'P6', 'P8', 'PO4', 'PO6', 'PO8'};
-leftIdx  = find(ismember(params.chanLabels, LeftElectrodes));
-rightIdx = find(ismember(params.chanLabels, RightElectrodes));
 
-erpEpochs   = trainEpochs(:, leftIdx, :);
-diffEpochs  = trainEpochs(:, leftIdx, :) - trainEpochs(:, rightIdx, :);
+if isequal(params.roi, 'P/PO')
+
+    LeftElectrodes  = {'P1', 'P3', 'P5', 'P7', 'PO3', 'PO5', 'PO7'};
+    RightElectrodes = {'P2', 'P4', 'P6', 'P8', 'PO4', 'PO6', 'PO8'};
+    leftIdx  = find(ismember(params.chanLabels, LeftElectrodes));
+    rightIdx = find(ismember(params.chanLabels, RightElectrodes));
+    
+    erpEpochs   = trainEpochs(:, leftIdx, :);
+    diffEpochs  = trainEpochs(:, leftIdx, :) - trainEpochs(:, rightIdx, :);
+elseif isequal(params.roi, 'None')
+    erpEpochs   = trainEpochs(:, :, :);
+end    
 
 % Distractor class: distractor right (label 1)
 % No distractor class: distractor right, no distractor (labels 1 or 0)
 trainLabels(trainLabels == 2) = 0;
+
+%% ==================== Power Spectral Density ==================== %%
+if (params.psd.is_compute)
+    midfrontElectrodes = {'AF3','AFZ','AF4','F5','F3','F1','FZ','F2',...
+    'F4','F6','FC3','FC1','FCZ','FC2','FC4'};
+    midfrontIdx = find(ismember(params.chanLabels, midfrontElectrodes));
+    psdEpochs = trainEpochs(:, midfrontIdx, :);
+    [psds, params] = compute_stockwell(psdEpochs, params);
+    psds = squeeze(mean(abs(psds).^2, 1));
+    psds = psds(params.resample.time(1:params.resample.ratio:end),:,:);
+    psds = reshape(psds, [size(psds,1)*size(psds,2) size(psds,3)]);
+    
+    if any(isnan(psds))
+        logicalIdx  = not(isnan(psds(:,1)));
+        psds = psds(logicalIdx,:);
+    end
+end
+
 
 %% ==================== Feature Extraction ==================== %%
 % ERP features
@@ -42,15 +68,17 @@ else
     DiffFilter = 'na';
 end
 
-% Combine features
-if params.features.erp_iscompute && params.features.diffwave_iscompute
-    classifierEpochs = [ERP_feats; Diff_feats];
-elseif params.features.erp_iscompute
-    classifierEpochs = ERP_feats;
-elseif params.features.diffwave_iscompute
-    classifierEpochs = Diff_feats;
+% TFR wave features
+if params.psd.is_compute
+    tfr_feats = psds;
 else
-    error('No features selected. Set params.features.erp_iscompute or diffwave_iscompute to true.');
+    tfr_feats = [];
+end
+
+classifierEpochs = cat(1, ERP_feats, Diff_feats, tfr_feats);
+
+if isempty(classifierEpochs)
+    error('No features selected. Set at least one of the params.features flags to true.');
 end
 
 %% ==================== Dimensionality Reduction ==================== %%
@@ -97,6 +125,7 @@ elseif isequal(params.classify.reduction.type, 'r2')
 end
 
 %% ==================== Model Training ==================== %%
+
 modelRaw = fitcdiscr(classifierEpochs', trainLabels, ...
     'Prior', 'uniform', 'DiscrimType', params.classify.type);
 
@@ -116,6 +145,7 @@ decoder.Classes = modelRaw.ClassNames;
 decoder.fsamp = params.fsamp;
 decoder.epochOnset = params.epochOnset;
 decoder.numFeatures = size(classifierEpochs, 1);
+decoder.roi = params.roi;
 decoder.classify = struct( ...
     'type', params.classify.type, ...
     'is_normalize', params.classify.is_normalize, ...
@@ -139,9 +169,18 @@ decoder.spatialFilter = struct( ...
     'erp', ERPfilter, ...
     'diff', DiffFilter ...
 );
-decoder.leftElectrodeIndices = leftIdx;
-decoder.rightElectrodeIndices = rightIdx;
-decoder.baseline_indices = baseline_idx;
+if isequal(params.roi, 'P/PO')
+    decoder.leftElectrodeIndices = leftIdx;
+    decoder.rightElectrodeIndices = rightIdx;
+end 
+decoder.psd = params.psd;
+if params.psd.is_compute
+    decoder.midfrontIdx = midfrontIdx;
+end
+decoder.baseline_iscompute = params.baseline_iscompute;
+if params.baseline_iscompute
+    decoder.baseline_idx = baseline_idx;
+end 
 if exist('selectedLambda', 'var')
     decoder.lassoLambda = selectedLambda;
 end

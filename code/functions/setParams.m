@@ -43,12 +43,35 @@ function params = setParams(header)
     params.EOG.spectralFilter.order = 2;  
 
     %%%%%%%%%%%%%%%%%%%%
+    %% ROI Selection %%%
+    %%%%%%%%%%%%%%%%%%%%
+    params.roi = 'P/PO'; % {'None', 'P/PO'}
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% Baseline Correction %%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%
+    params.baseline_iscompute = true;
+    params.baseline_window = [-0.2, 0];
+
+    %%%%%%%%%%%%%%%%%%%%
     %% Spatial Filter %%
     %%%%%%%%%%%%%%%%%%%%
     params.spatialFilter.type = 'CCA';  
     params.spatialFilter.time = round(0.15*params.fsamp)+1:round(0.5*params.fsamp);
     params.spatialFilter.time = params.spatialFilter.time + params.epochOnset;
     params.spatialFilter.nComp = 2;
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% Power Spectral Density %%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    params.psd.is_compute = true;
+    params.psd.type = 'stockwell';  % {'stockwell'}
+    params.psd.time = round(0.15*params.fsamp)+1:round(0.5*params.fsamp);
+    params.psd.time = params.psd.time + params.epochOnset;
+    params.psd.window = hanning(length(params.psd.time));
+    params.psd.nfft  = 4*params.fsamp;
+    params.psd.overlap = [];
+    params.psd.freq_range = [4:1:7];
 
     %%%%%%%%%%%%%%
     %% Features %%
@@ -69,6 +92,6 @@ function params = setParams(header)
     %%%%%%%%%%%%%%%%
     params.classify.is_normalize = false;
     params.classify.reduction.type = 'r2'; % {'pca', 'lasso', 'r2', 'None'}
-    params.classify.type = 'linear'; 
+    params.classify.type = 'diaglinear'; % {'linear', 'diaglinear'}
       
 end

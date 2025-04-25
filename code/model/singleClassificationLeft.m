@@ -13,13 +13,27 @@ function [posterior, epoch] = singleClassificationLeft(decoder, eeg)
 %   epoch     - Feature vector used for classification
 
 %% ---------------- Baseline Correction ---------------- %%
-baselineStart = decoder.epochOnset - round(0.2 * decoder.fsamp);
-baseline = mean(eeg(baselineStart:decoder.epochOnset, :, :), 1);
-eeg = eeg - baseline;
-
+if decoder.baseline_iscompute
+    baseline = mean(eeg(decoder.baseline_idx, :, :), 1);
+    eeg = eeg - baseline;
+end 
 %% --------- ROI Extraction & Difference Wave ---------- %%
-erpEpochs  = eeg(:, decoder.leftElectrodeIndices, :);
-diffEpochs = eeg(:, decoder.leftElectrodeIndices, :) - eeg(:, decoder.rightElectrodeIndices, :);
+if isequal(decoder.roi, 'P/PO')
+    erpEpochs  = eeg(:, decoder.leftElectrodeIndices, :);
+    diffEpochs = eeg(:, decoder.leftElectrodeIndices, :) - eeg(:, decoder.rightElectrodeIndices, :);
+elseif isequal(decoder.roi, 'None')
+    erpEpochs  = eeg(:, :, :);
+end
+
+%% --------- Power Spectral Density ---------- %%
+if (decoder.psd.is_compute)
+    psd_epoch = eeg(:, decoder.midfrontIdx,:);
+    [psd, decoder] = compute_stockwell(psd_epoch,decoder);
+    psd = squeeze(mean(abs(psd).^2, 1));
+    psd = psd(decoder.resample.time(1:decoder.resample.ratio:end),:,:);
+    [~, ~, n_trials] = size(psd);
+    psd = reshape(psd, [size(psd,1)*size(psd,2) n_trials]);
+end
 
 %% ---------------- Feature Processing ---------------- %%
 if decoder.features.erp_iscompute
@@ -34,16 +48,13 @@ else
     Diff_feats = [];
 end
 
-% Combine features
-if ~isempty(ERP_feats) && ~isempty(Diff_feats)
-    epoch = [ERP_feats; Diff_feats];
-elseif ~isempty(ERP_feats)
-    epoch = ERP_feats;
-elseif ~isempty(Diff_feats)
-    epoch = Diff_feats;
-else
-    error('No features selected in decoder.features.');
+if decoder.psd.is_compute
+    tfr_feats = psd;
+else 
+    tfr_feats = [];
 end
+
+epoch = cat(1, ERP_feats, Diff_feats, tfr_feats);
 
 %% ----------- Apply Dimensionality Reduction ----------- %%
 if isequal(decoder.classify.reduction.type, 'pca')

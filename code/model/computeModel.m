@@ -66,7 +66,7 @@ for i = 1:numel(fields)
 end
 
 %% ================== Classification Setup ==================== %%
-trainingData = combineEpochs({data.training1.epochs});
+trainingData = combineEpochs({data.training1.epochs,data.training2.epochs, data.training3.epochs});
 nFiles = length(trainingData.eof);
 trainingData.posteriors.Left  = nan(length(trainingData.labels), 1);
 trainingData.posteriors.Right = nan(length(trainingData.labels), 1);
@@ -90,22 +90,30 @@ trainingData.labelsforRightDecoder = trainingData.labels;
 trainingData.labelsforRightDecoder(trainingData.labels == 2) = 1;
 trainingData.labelsforRightDecoder(trainingData.labels == 1) = 0;
 
-[x, y, t, aucRight, opt] = perfcurve(~trainingData.labelsforRightDecoder, ...
-    1 - trainingData.posteriors.Right, 1, 'Prior', 'uniform');
+[~, ~, ~, aucRight, ~] = perfcurve(trainingData.labelsforRightDecoder, ...
+    trainingData.posteriors.Right, 1, 'Prior', 'uniform','xCrit', 'reca','yCrit', 'prec');
+
+range = linspace(0.2, 0.8, 61); %no extreme thresholds
+[x, y, t, ~, opt] = perfcurve(trainingData.labelsforRightDecoder, ...
+    trainingData.posteriors.Right, 1, 'Prior', 'uniform','TVals', range);
 threshold = t(x == opt(1) & y == opt(2));
 
-fprintf('\n[Right Decoder] AUC: %.2f | Threshold: %.2f\n', aucRight, threshold);
+fprintf('\n[Right Decoder] AUPRC: %.2f | Threshold: %.2f\n', aucRight, threshold);
 printConfusionMatrix(trainingData.labelsforRightDecoder, trainingData.posteriors.Right >= threshold);
 
 %% ============ Evaluate Left Distractor Decoder ============= %%
 trainingData.labelsforLeftDecoder = trainingData.labels;
 trainingData.labelsforLeftDecoder(trainingData.labels == 2) = 0;
 
-[x, y, t, aucLeft, opt] = perfcurve(~trainingData.labelsforLeftDecoder, ...
-    1 - trainingData.posteriors.Left, 1, 'Prior', 'uniform');
+[~, ~, ~, aucLeft, ~] = perfcurve(trainingData.labelsforLeftDecoder, ...
+    trainingData.posteriors.Left, 1, 'Prior', 'uniform','xCrit', 'reca','yCrit', 'prec');
+
+range = linspace(0.2, 0.8, 61); %no extreme thresholds
+[x, y, t, ~, opt] = perfcurve(trainingData.labelsforLeftDecoder, ...
+    trainingData.posteriors.Left, 1, 'Prior', 'uniform','TVals', range);
 threshold = t(x == opt(1) & y == opt(2));
 
-fprintf('\n[Left Decoder] AUC: %.2f | Threshold: %.2f\n', aucLeft, threshold);
+fprintf('\n[Left Decoder] AUPRC: %.2f | Threshold: %.2f\n', aucLeft, threshold);
 printConfusionMatrix(trainingData.labelsforLeftDecoder, trainingData.posteriors.Left >= threshold);
 
 %% ===================== Sanity Check ======================== %%
