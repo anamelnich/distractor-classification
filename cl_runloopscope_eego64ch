@@ -1,0 +1,30 @@
+#!/bin/bash
+# 2011-05-27  Michele Tavella <michele.tavella@epfl.ch>
+# 2011-05-17  Inaki Iturrate <inaki.iturrate@epfl.ch>
+# 2015-11-19  Serafeim Perdikis <serafeim.perdikis@epfl.ch>
+
+
+# if [ "z$1" == "z" ]; then
+# 	echo "[cl_runloop] Error: cl_acquisition arguments needed";
+# 	exit 1;
+# fi
+
+cl_rpcnotify "CnbiTk cl_runloop" "Starting: eego cybathlon2020"
+cl_copyxsl
+
+gnome-terminal \
+---tab "CnbiTk RPC Shell (devel)" \
+---tab -e "bash -c 'cl_keepalive cl_nameserver'" --title "CnbiTk Nameserver" \
+---tab -e "bash -c 'sleep 1; cl_keepalive cl_processing'" --title "CnbiTk Processing" \
+---tab -e "bash -c 'sleep 2; cl_keepalive cl_acquisitionscope -d \"eego|SR|512|CAP|200|EEG_MASK|0xffffffffffffffff|BIP_MASK|0xC0\"'" --title "CnbiTk Acquisition with eegview scope" #Bipolar B 4 channels
+
+# ---tab -e "bash -c 'sleep 2; cl_keepalive cl_acquisitionscope -d \"eego|SR|2048|CAP|200|EEG_MASK|0xffffffffffffffff|BIP_MASK|0x001C0\"'" --title "CnbiTk Acquisition with eegview scope" #Bipolar B
+# ---tab -e "bash -c 'sleep 2; cl_keepalive cl_acquisitionscope -d \"eego|SR|512|CAP|200|EEG_MASK|0xffffffffffffffff|BIP_MASK|0x00007\"'" --title "CnbiTk Acquisition with eegview scope"  #Bipolar A
+# ---tab -e "bash -c 'sleep 2; cl_keepalive cl_acquisitionscope -d \"eego|SR|512|CAP|200|EEG_MASK|0xffffffffffffffff|BIP_MASK|0x001C0\"'" --title "CnbiTk Acquisition with eegview scope" #Bipolar A
+
+
+# if not all 64 channnels to be used: 
+
+
+
+

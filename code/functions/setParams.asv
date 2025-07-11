@@ -7,11 +7,11 @@ function params = setParams(header)
     params.fsamp = header.SampleRate;  
 
     params.eegChannels = 1:64; 
-    params.eogChannels = 65:66;
-    params.triggerChannel = 67;
+    params.eogChannels = 65:68;
+    params.triggerChannel = 69;
 
     params.chanLabels = header.Label;
-    params.chanLabels(65:67)=[];
+    params.chanLabels(65:69)=[];
 
     params.plotOption = {'LineWidth', 2};
     params.plotColor = {
@@ -42,6 +42,11 @@ function params = setParams(header)
     params.EOG.spectralFilter.freqs = [1 10];  
     params.EOG.spectralFilter.order = 2;  
 
+    %%%%%%%%%%%%%%%
+    %% Balancing %%
+    %%%%%%%%%%%%%%%
+    params.balance_iscompute = false;
+
     %%%%%%%%%%%%%%%%%%%%
     %% ROI Selection %%%
     %%%%%%%%%%%%%%%%%%%%
@@ -56,7 +61,7 @@ function params = setParams(header)
     %%%%%%%%%%%%%%%%%%%%
     %% Spatial Filter %%
     %%%%%%%%%%%%%%%%%%%%
-    params.spatialFilter.type = 'CCA';  
+    params.spatialFilter.type = 'xDAWN';  % {'CCA','xDAWN'}
     params.spatialFilter.time = round(0.15*params.fsamp)+1:round(0.5*params.fsamp);
     params.spatialFilter.time = params.spatialFilter.time + params.epochOnset;
     params.spatialFilter.nComp = 2;
@@ -64,19 +69,22 @@ function params = setParams(header)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Power Spectral Density %%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    params.psd.is_compute = true;
+    params.psd.is_compute = false;
     params.psd.type = 'stockwell';  % {'stockwell'}
+    % params.psd.roi = {'AF7','AF3','F5','F3','FC5','FC3','FT7','F7'}; %lIFG
+    % params.psd.roi = {'AF8','AF4','F6','F4','FC6','FC4','FT8', 'F8'}; %rIFg
+    params.psd.roi = {'AFZ','FZ','FCZ','F1','F2','FC2','FC1'}; %midfrontal
     params.psd.time = round(0.15*params.fsamp)+1:round(0.5*params.fsamp);
     params.psd.time = params.psd.time + params.epochOnset;
     params.psd.window = hanning(length(params.psd.time));
     params.psd.nfft  = 4*params.fsamp;
     params.psd.overlap = [];
-    params.psd.freq_range = [4:1:7];
+    params.psd.freq_range = [4:1:7]; %[13:1:30] for beta
 
     %%%%%%%%%%%%%%
     %% Features %%
     %%%%%%%%%%%%%%
-    params.features.erp_iscompute = t;
+    params.features.erp_iscompute = true;
     params.features.diffwave_iscompute = true;
 
     %%%%%%%%%%%%%%%%%%%%%%
@@ -90,8 +98,10 @@ function params = setParams(header)
     %%%%%%%%%%%%%%%%
     %% Classifier %%
     %%%%%%%%%%%%%%%%
-    params.classify.is_normalize = false;
-    params.classify.reduction.type = 'r2'; % {'pca', 'lasso', 'r2', 'None'}
-    params.classify.type = 'diaglinear'; % {'linear', 'diaglinear'}
+    params.classify.is_normalize = true;
+    params.classify.reduction.type = 'r2'; % {'pca', 'lasso', 'r2', 'None'} %r2 ru
+    params.classify.reduction.numfeats = 30;
+    params.classify.reduction.pcaprct = 95;
+    params.classify.type = 'SVM'; % {'linear', 'diaglinear','SVM'}
       
 end

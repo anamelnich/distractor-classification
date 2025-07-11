@@ -1,53 +1,68 @@
 function combinedEpochs = combineEpochs(epochStructs)
-% combineEpochStructs concatenates multiple epoch structures.
+% combineEpochs concatenates multiple epoch structures with RT
 %
-% Each input epoch structure must have the following fields:
-%   - data   : [time x channels x trials]
-%   - labels : [trials x 1]
-%   - file_id: [trials x 1] (run identifier; e.g., 1 for first run, 2 for second, etc.)
-%   - eof    : a vector of end-of-file indices (one per run)
-%
-% When concatenating, file_id values for each additional epoch are 
-% incremented by the maximum file_id from the previous data.
-% Similarly, eof values are adjusted by adding the total number of trials
-% from the previous epochs.
-%
-% Input:
-%   epochStructs - a cell array containing epoch structures
-%
-% Output:
-%   combinedEpochs - a structure with fields:
-%       .data, .labels, .file_id, .eof
+%   combinedEpochs = combineEpochs(epochStructs)
+%   Inputs:
+%     epochStructs - cell array of structs, each must have fields:
+%         .data    [time x channels x trials]
+%         .labels  [trials x 1]
+%         .file_id [trials x 1]
+%         .eof     [scalar or vector end-of-file indices]
+%         .RT      [trials x 1]  (optional: reaction times)
+%   Output:
+%     combinedEpochs struct with fields:
+%         .data, .labels, .file_id, .eof, .RT
 
+% initialize
 combinedEpochs = struct();
-combinedEpochs.data = [];       
-combinedEpochs.labels = [];     
-combinedEpochs.file_id = [];    
-combinedEpochs.eof = [];        
+combinedEpochs.data    = [];
+combinedEpochs.labels  = [];
+combinedEpochs.file_id = [];
+combinedEpochs.eof     = [];
+combinedHasRT = true;
+combinedEpochs.RT      = [];
+combinedEpochs.tpos    = [];
+% combinedEpochs.dpos    = [];
 
 file_id_offset = 0;
 
-
-for i = 1:length(epochStructs)
-    curEpoch = epochStructs{i};
-    
+t = numel(epochStructs);
+for i = 1:t
+    cur = epochStructs{i};
+    nTrials = numel(cur.labels);
+    %----- concatenate data -----
     if isempty(combinedEpochs.data)
-        combinedEpochs.data = curEpoch.data;
+        combinedEpochs.data = cur.data;
     else
-        combinedEpochs.data = cat(3, combinedEpochs.data, curEpoch.data);
+        combinedEpochs.data = cat(3, combinedEpochs.data, cur.data);
     end
-
-    combinedEpochs.labels = [combinedEpochs.labels; curEpoch.labels];
-
-    adjusted_file_id = curEpoch.file_id + file_id_offset;
-    combinedEpochs.file_id = [combinedEpochs.file_id; adjusted_file_id];
-    
-    if ~isempty(curEpoch.file_id)
-        file_id_offset = file_id_offset + max(curEpoch.file_id);
+    % labels
+    combinedEpochs.labels = [combinedEpochs.labels; cur.labels];
+    % file_id (adjusted)
+    adjFileID = cur.file_id + file_id_offset;
+    combinedEpochs.file_id = [combinedEpochs.file_id; adjFileID];
+    % update offset
+    if ~isempty(cur.file_id)
+        file_id_offset = file_id_offset + max(cur.file_id);
     end
-    
-    combinedEpochs.eof = [combinedEpochs.eof; curEpoch.eof];
+    % eof
+    combinedEpochs.eof = [combinedEpochs.eof; cur.eof(:)];
 
+    % RT handling
+    if isfield(cur, 'RT') && numel(cur.RT)==nTrials
+        combinedEpochs.RT = [combinedEpochs.RT; cur.RT(:)];
+        combinedEpochs.tpos = [combinedEpochs.tpos; cur.tpos(:)];
+        % combinedEpochs.dpos = [combinedEpochs.dpos; cur.dpos(:)];
+    else
+        % fill with NaNs for missing or mismatched RT
+        combinedHasRT = false;
+        combinedEpochs.RT = [combinedEpochs.RT; nan(nTrials,1)];
+    end
 end
 
+% If any epoch lacked valid RT, warn once
+if ~combinedHasRT
+    warning('combineEpochs:MissingRT', 'Some epochs missing RT or length mismatch; filled with NaNs.');
 end
+end
+
