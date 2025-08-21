@@ -5,16 +5,12 @@ from datetime import datetime
 # 6 = Fixation
 # 110 = ND target lateral
 # 100 = ND target midline
-# 106, 107, 108 = D
+# 106, 107, 108 = D left
+# 102, 103, 104 = D right
 # 11 = correct
 # 12 = incorrect
 # 13 = time out
 
-
-
-#Onset triggers
-# 10 = ND UP (11 correct, 12 incorrect, 13 timeout)
-# 20 = D UP (21 correct, 22 incorrect, 23 timeout)
 
 MODE = 'test' # train, decode
 
@@ -52,10 +48,10 @@ screen_height_cm = 17.92
 n_trials = 60
 n_d_trials = n_trials/2
 break_trial = 31  # trial index at which to take a break
-delay_duration_ms = 500
+delay_duration_ms = [350, 750, 50] # min, max, step
 fixation_duration_ms = 1000
 stimulus_duration_ms = 2000
-break_duration_ms = 20000
+break_duration_ms = 10000
 feedback_duration_ms = 500
 
 # Trigger

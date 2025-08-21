@@ -33,7 +33,7 @@ function keepMask = balanceRuns(trainingData)
     keepMask([sampL; sampN]) = true;
   end
 end
-
+% 
 % function trainingData = balanceRuns(trainingData)
 % % BALANCERUNS  Balance distractor vs. no-distractor trials within each run
 % %   trainingData = BALANCERUNS(trainingData, nTrials) downsamples no-distractor

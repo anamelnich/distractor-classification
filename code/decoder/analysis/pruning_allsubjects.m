@@ -6,9 +6,9 @@ subjectList = {'e1','e2','e3','e4','e5','e6'};  % <-- fill in your subject IDs
 resultsDir  = 'results';           % directory to save per-subject .mat files
 
 % Create results directory if needed
-if ~exist(resultsDir,'dir')
-    mkdir(resultsDir);
-end
+% if ~exist(resultsDir,'dir')
+%     mkdir(resultsDir);
+% end
 
 % ----- Loop: compute and save per-subject data -----
 nSubs = numel(subjectList);

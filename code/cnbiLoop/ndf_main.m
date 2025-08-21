@@ -11,13 +11,19 @@ addpath(genpath('../functions'));
 skip_iterations = true;
 % Prepare and enter main loop
 try
-    load('./decoder.mat');
+    decoderR = load('./decoderR.mat');
+    decoderL = load('./decoderL.mat');
+    if decoderR.performance.tnr > decoderL.performance.tnr
+        decoderN = decoderR;
+    else
+        decoderN = decoderL;
+    end
     disp('Decoder Updated at');
-    disp(decoder.datetime);
+    disp(decoderR.datetime);
 
     ndf_initialization(); %sets up ndf configuration, should automatically setup ndf with 64 ch based on incoming data
-    decoder = initializeParams(decoder);
-    cleanupObj = onCleanup(@() ndf_down(decoder));
+    decoderR = initializeParams(decoderR);
+    cleanupObj = onCleanup(@() ndf_down(decoderR));
 
     tid_attach(ID);
     disp('[ndf] Receiving NDF frames...');
@@ -47,22 +53,35 @@ try
 
             %store EEG and trigger data in stream, includes bandpass filter ...
             % based on spatial filter in decoder, also has EOG filter (commented out)
-            ndf_store_signals([eeg_input, eog_input], trigger_input, decoder); 
+            ndf_store_signals([eeg_input, eog_input], trigger_input, decoderR); 
 
             if (~any(isnan(stream.eeg(:))))
                 %returns sample (out of 768) where one of these triggers is found
                 % first_index = find(ismember(stream.trigger, [102 104 100 110]), 1, 'first'); 
-                first_index = find(ismember(stream.trigger, [106 107 108 100 110]), 1, 'first');
+                first_index = find(ismember(stream.trigger, [102 103 104 106 107 108 100 110]), 1, 'first');
                 %disp(first_index)
                 if (first_index >= 256) & (first_index <= 308) % 0.5 sec baseline, need 256 for decoder.baseline_idx to work correctly
                     label_value = stream.trigger(first_index);
                     fprintf('Label value at first_index (%d): %d\n', first_index, label_value);
-                    [ex_posterior, ~] = singleClassificationRight(decoder, stream.eeg((first_index - 256):end, decoder.eegChannels));
+                    if ismember(label_value, [102 103 104])
+                        [ex_posterior, ~] = singleClassificationRight(decoderR,...
+                            stream.eeg((first_index - 256):end, decoderR.eegChannels));
+                        threshold = decoderR.threshold;
+                    elseif ismember(label_value, [106 107 108])
+                        [ex_posterior, ~] = singleClassificationRight(decoderL,...
+                            stream.eeg((first_index - 256):end, decoderL.eegChannels));
+                        threshold = decoderL.threshold;
+                    else
+                        [ex_posterior, ~] = singleClassificationRight(decoderN,...
+                            stream.eeg((first_index - 256):end, decoderN.eegChannels));
+                        threshold = deocderN.threshold;
+                    end
                     disp(['Time Frame: ' num2str(time_frame, '%.2f') ' Posteriors: ' num2str(ex_posterior, ' %.2f')]);
-                    decoder.onlinePosteriors = [decoder.onlinePosteriors, ex_posterior];
+                    decoderR.onlinePosteriors = [decoderR.onlinePosteriors, ex_posterior];
                     stream.trigger(first_index) = 0;
-                    diff = ex_posterior - decoder.threshold;
-                    if abs(diff) <= decoder.thresholdMargin
+
+                    diff = ex_posterior - threshold;
+                    if abs(diff) <= decoderR.thresholdMargin
                         code = 3;
                     else
                         code = (diff > 0) + 1; % diff>0 → code=2 or Pd, else (diff<0) → code=1 or no Pd
@@ -79,8 +98,8 @@ try
     end
 folderPath = './online_decoders';
 timestamp = datestr(now, 'yyyymmdd_HHMMSS');
-filename = fullfile(folderPath,['decoder_' timestamp '.mat']);
-save(filename, 'decoder');
+filenameR = fullfile(folderPath,['decoderR_' timestamp '.mat']);
+save(filenameR, 'decoderR');
 
 catch exception
     ndf_printexception(exception);

@@ -89,7 +89,7 @@ def run_training_mode(basename):
         config.n_trials,
         set_size
     )
-    mid_pos, lat_pos, left_pos = utils.compute_positions_for_set_size(set_size)
+    mid_pos, lat_pos, left_pos, right_pos = utils.compute_positions_for_set_size(set_size)
     if config.MODE in ("train","decode"):
         utils.init_hardware_trigger()
     
@@ -155,7 +155,8 @@ def run_training_mode(basename):
         #Draw blank screen
         screen.fill((0, 0, 0))
         pygame.display.update()
-        pygame.time.delay(config.delay_duration_ms)
+        ITI = utils.get_random_delay(config.delay_duration_ms)
+        pygame.time.delay(ITI)
    
         # Draw fixation cross
         pygame.draw.line(screen, (225, 225, 225), (x_center - config.fixation_size, y_center), (x_center + config.fixation_size, y_center), config.line_width)
@@ -237,7 +238,7 @@ def run_training_mode(basename):
         pygame.time.delay(config.feedback_duration_ms)
         responses.append(response)
 
-        log.log_trial( trial_idx, task, response, tpos, dpos, dot_correct)
+        log.log_trial( trial_idx, task, response, tpos, dpos, dot_correct, ITI)
         trial_idx += 1
 
     # --- SUMMARY SCREEN ---
@@ -297,7 +298,7 @@ def run_decoding_mode(basename):
         config.n_trials,
         set_size
     )
-    mid_pos, lat_pos, left_pos = utils.compute_positions_for_set_size(set_size)
+    mid_pos, lat_pos, left_pos, right_pos = utils.compute_positions_for_set_size(set_size)
 
     # init hardware triggers & BCI listener
     utils.init_hardware_trigger()
@@ -370,7 +371,8 @@ def run_decoding_mode(basename):
 
         # blank + delay
         screen.fill((0,0,0)); pygame.display.update()
-        pygame.time.delay(config.delay_duration_ms)
+        ITI = utils.get_random_delay(config.delay_duration_ms)
+        pygame.time.delay(ITI)
 
         # fixation
         pygame.draw.line(screen, (225,225,225),
@@ -497,7 +499,7 @@ def run_decoding_mode(basename):
         responses.append(response)
         BCI_output.append(Pd_class)
         log.log_trial(trial_idx, task, response,
-                      tpos, dpos, dot_correct, Pd_class)
+                      tpos, dpos, dot_correct, ITI,Pd_class)
 
         trial_idx += 1
 
@@ -586,7 +588,7 @@ def run_test_mode(basename):
         config.n_trials,
         set_size
     )
-    mid_pos, lat_pos, left_pos = utils.compute_positions_for_set_size(set_size)
+    mid_pos, lat_pos, left_pos, right_pos = utils.compute_positions_for_set_size(set_size)
     
     responses = []
     trial_idx = 0
@@ -650,7 +652,8 @@ def run_test_mode(basename):
         #Draw blank screen
         screen.fill((0, 0, 0))
         pygame.display.update()
-        pygame.time.delay(config.delay_duration_ms)
+        ITI = utils.get_random_delay(config.delay_duration_ms)
+        pygame.time.delay(ITI)
    
         # Draw fixation cross
         pygame.draw.line(screen, (225, 225, 225), (x_center - config.fixation_size, y_center), (x_center + config.fixation_size, y_center), config.line_width)
@@ -715,7 +718,7 @@ def run_test_mode(basename):
 
                         response     = 1 if is_correct else 2
                         trigger_code = 11 if is_correct else 12
-                        add_trigger(trigger_code, trial_idx)
+                        utils.add_trigger(trigger_code, trial_idx)
                         break
         screen.fill((0, 0, 0))
         if response == 1:
@@ -732,7 +735,7 @@ def run_test_mode(basename):
         pygame.time.delay(config.feedback_duration_ms)
         responses.append(response)
 
-        log.log_trial( trial_idx, task, response, tpos, dpos, dot_correct)
+        log.log_trial( trial_idx, task, response, tpos, dpos, dot_correct, ITI)
         trial_idx += 1
 
     # --- SUMMARY SCREEN ---

@@ -140,15 +140,15 @@ def compute_shape_coords(set_size: int, d_from_center: float,
 # ================== Trial Randomization Utilities ==================
 
 def compute_positions_for_set_size(set_size):
-    """Returns (mid_pos, lat_pos, left_pos) for your given set_size."""
+    """Returns (mid_pos, lat_pos, left_pos, right_pos) for your given set_size."""
     if set_size == 4:
-        return [1,3], [2,4], [2,4]
+        return [1,3], [2,4], [4], [2] 
     if set_size == 6:
-        return [1,4], [2,3,5,6], [2,3]
+        return [1,4], [2,3,5,6], [5,6], [2,3]
     if set_size == 8:
-        return [1,5], [2,3,4,6,7,8], [6,7,8]
+        return [1,5], [2,3,4,6,7,8], [6,7,8], [2,3,4]
     if set_size == 10:
-        return [1,6], list(range(2,6))+list(range(7,11)), list(range(6,11))
+        return [1,6], list(range(2,6))+list(range(7,11)), list(range(6,11)), list(range(2,6))
     raise ValueError(f"Unsupported set_size: {set_size}")
 
 def generate_trials(n_trials, set_size):
@@ -168,16 +168,37 @@ def generate_trials(n_trials, set_size):
               for i in range(n_trials-3)):
         random.shuffle(trial_types)
 
-    mid_pos, lat_pos, left_pos = compute_positions_for_set_size(set_size)
+    mid_pos, lat_pos, left_pos, right_pos = compute_positions_for_set_size(set_size)
 
     # 2) distractor positions
     d_pos = [0]*n_trials
     n_d = trial_types.count(1)
-    pool = left_pos * math.ceil(n_d/len(left_pos))
-    random.shuffle(pool)
+    
+    # Create equal distribution between left and right positions
+    half_d = n_d // 2
+    remainder = n_d % 2  # Handle odd numbers of distractors
+    
+    # Create pools with enough positions for each side
+    left_pool = left_pos * math.ceil((half_d + remainder)/len(left_pos))
+    right_pool = right_pos * math.ceil(half_d/len(right_pos))
+    
+    # Shuffle both pools
+    random.shuffle(left_pool)
+    random.shuffle(right_pool)
+    
+    # Create a list of side assignments (left/right) and shuffle it
+    side_assignments = ['left'] * (half_d + remainder) + ['right'] * half_d
+    random.shuffle(side_assignments)
+    
+    # Assign distractors to trials
+    side_idx = 0
     for i, tt in enumerate(trial_types):
         if tt == 1:
-            d_pos[i] = pool.pop(0)
+            if side_assignments[side_idx] == 'left':
+                d_pos[i] = left_pool.pop(0)
+            else:
+                d_pos[i] = right_pool.pop(0)
+            side_idx += 1
 
     # 3) target positions
     t_pos = [0]*n_trials
@@ -211,6 +232,26 @@ def generate_trials(n_trials, set_size):
         shape_positions.append(trial_dict)
 
     return trial_types, d_pos, t_pos, shape_positions
+
+# ================== Random Delay Utilities ==================
+
+def get_random_delay(delay_config):
+    """
+    Generate a random delay duration based on config parameters.
+    
+    Args:
+        delay_config: List [min_ms, max_ms, step_ms] where:
+            - min_ms: minimum delay in milliseconds
+            - max_ms: maximum delay in milliseconds  
+            - step_ms: step size in milliseconds
+    
+    Returns:
+        Random delay duration in milliseconds
+    """
+    min_ms, max_ms, step_ms = delay_config
+    # Generate possible values based on step size
+    possible_values = list(range(min_ms, max_ms + step_ms, step_ms))
+    return random.choice(possible_values)
 
 # ================== Trigger Utilities ==================
 
