@@ -1,0 +1,3 @@
+cd ./code/cnbiLoop
+matlab -nodesktop -nosplash -r ndf_main
+

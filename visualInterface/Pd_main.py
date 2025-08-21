@@ -181,7 +181,7 @@ def run_training_mode(basename):
                     response     = 3
                     utils.add_trigger(13, trial_idx)
             else:
-                screen.fill((0,0,0))
+                # screen.fill((0,0,0))
 
                 for pos, (shape_name, dot_side) in shape_positions[trial_idx].items():
                     x, y = shape_coords[pos-1]
@@ -329,6 +329,7 @@ def run_decoding_mode(basename):
     # performance counters
     cmTP = cmFP = cmTN = cmFN = 0
     score = 0
+    uncertain_count=0
 
     responses = []
     BCI_output = []
@@ -405,7 +406,7 @@ def run_decoding_mode(basename):
                 screen.fill((0, 0, 0))
                 pygame.display.update()
             else:
-                screen.fill((0,0,0))
+                # screen.fill((0,0,0))
                 for pos, (shape_name, dot_side) in shape_map.items():
                     x, y  = shape_coords[pos-1]
                     sdef  = shape_def_map[shape_name.lower()]
@@ -432,7 +433,7 @@ def run_decoding_mode(basename):
                         break
 
                     if ev.type == pygame.MOUSEBUTTONDOWN:
-                        trial_end    = True
+                        # trial_end    = True
                         resp_recorded = True
                         wait = True
 
@@ -446,7 +447,7 @@ def run_decoding_mode(basename):
                         utils.add_trigger(trigger_code, trial_idx)
                         screen.fill((0, 0, 0))
                         pygame.display.update()
-                        break
+                        # break
 
         # 6) BCI‐driven feedback
         screen.fill((0,0,0))
@@ -454,11 +455,11 @@ def run_decoding_mode(basename):
         if correct_detected:
             Pd_class = 1
             if task == 1:
-                response_text = "Score +2"; response_color = (0,255,0)
+                response_text = "Score: +2"; response_color = (0,255,0)
                 score+=2
                 icon = thumb_up; cmTP += 1; score += 2
             else:
-                response_text = "Score -1"; response_color = (255,0,0)
+                response_text = "Score: -1"; response_color = (255,0,0)
                 score-=1
                 icon = thumb_down; cmFP += 1; score -= 1
             correct_detected = False
@@ -480,19 +481,25 @@ def run_decoding_mode(basename):
             response_text = "Score: NA"; response_color = (255,255,255)
             icon = uncertain
             uncertainty_detected = False
+            uncertain_count+=1
         else:
             Pd_class = 4
             response_text = "No Model Output"
             response_color = (255,255,255)
 
-        if icon is not None:
-            icon_rect = icon.get_rect(center=(x_center,y_center))
-            screen.blit(icon, icon_rect)
 
-        text_surf = font.render(response_text, True, response_color)
-        text_rect = text_surf.get_rect()
-        text_rect.midtop = (x_center, icon_rect.bottom + 10)
-        screen.blit(text_surf, text_rect)
+        if icon is not None:
+            icon_rect = icon.get_rect(center=(x_center, y_center))
+            screen.blit(icon, icon_rect)
+            # now we know icon_rect exists:
+            text_surf = font.render(response_text, True, response_color)
+            text_rect = text_surf.get_rect(midtop=(x_center, icon_rect.bottom + 10))
+            screen.blit(text_surf, text_rect)
+        else:
+            # no icon: just center the text vertically instead
+            text_surf = font.render(response_text, True, response_color)
+            text_rect = text_surf.get_rect(center=(x_center, y_center))
+            screen.blit(text_surf, text_rect)
         pygame.display.update()
         pygame.time.delay(1000)
 
@@ -510,7 +517,7 @@ def run_decoding_mode(basename):
     screen.fill((0,0,0))
 
     big_font = pygame.font.SysFont(config.font, 80)   # size 80 for big
-    score_surf = big_font.render(f"Score: {score}", True, (255,255,255))
+    score_surf = big_font.render(f"Score: {score} out of 90", True, (255,255,255))
     score_rect = score_surf.get_rect(center=(x_center, y_center - 40))
     screen.blit(score_surf, score_rect)
 
@@ -544,9 +551,11 @@ def run_decoding_mode(basename):
     accuracy = 100*(cmTP+cmTN)/total if total>0 else 0
     TPR = 100*cmTP/(cmTP+cmFN) if (cmTP+cmFN)>0 else 0
     TNR = 100*cmTN/(cmTN+cmFP) if (cmTN+cmFP)>0 else 0
+    prct_uncertain = 100*uncertain_count/config.n_trials
     print(f"Accuracy: {accuracy:.2f}%")
     print(f"TPR:      {TPR:.2f}%")
     print(f"TNR:      {TNR:.2f}%")
+    print(f"% uncertain: {prct_uncertain:.2f}")
 
     listener_running[0] = False
     listener_thread.join()

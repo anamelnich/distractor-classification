@@ -12,7 +12,7 @@ def get_current_logger():
     return _current_logger
 
 class TrialLogger:
-    def __init__(self, basename: str | None = None):
+    def __init__(self, basename = None):
         if not basename:
             basename = datetime.now().strftime("test_%Y%m%d%H%M%S")
         self.basename      = basename

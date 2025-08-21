@@ -100,7 +100,7 @@ cl_rpc openxdf $gdffilename $logfilename ""
 
 # Run Python Interface
 sleep 3
-python3 ./visualInterface/Pd_main.py "train" "$basename"
+python3 ./visualInterface/Pd_main.py "$basename" "train"
 
 # Close the GDF file
 sleep 3
@@ -134,7 +134,7 @@ cl_rpc openxdf $gdffilename $logfilename ""
 
 # Run Python Interface
 sleep 3
-python3 ./visualInterface/Pd_main.py "train" "$basename"
+python3 ./visualInterface/Pd_main.py "$basename" "train"
 
 # Close the GDF file
 sleep 3
@@ -173,7 +173,7 @@ gnome-terminal --title "Distractor Detection" -- bash -c "./matlabLauncher; echo
 
 # Run python script
 sleep 20
-python3 ./visualInterface/Pd_main.py "decode" "$basename"
+python3 ./visualInterface/Pd_main.py "$basename" "decode"
 
 # Close the GDF file
 sleep 3

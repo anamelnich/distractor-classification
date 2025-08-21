@@ -40,12 +40,12 @@ y_center = screen_height // 2
 # Physical parameters (adjust as needed)
 screen_width_cm = 30.5    # cm
 screen_height_cm = 18.0   # cm
-viewing_distance_cm = 60.0
+viewing_distance_cm = 75.0
 # Compute average pixels per cm from screen dimensions
 pixels_per_cm = ((screen_width / screen_width_cm) + (screen_height / screen_height_cm)) / 2
 
 # Define eccentricity and compute pixel distance from center
-eccentricity_deg = 5      # degrees of visual angle
+eccentricity_deg = 4      # degrees of visual angle
 d_from_center = degrees_to_pixels(eccentricity_deg, viewing_distance_cm, pixels_per_cm)
 
 # Define four dot positions (top, right, bottom, left relative to center)

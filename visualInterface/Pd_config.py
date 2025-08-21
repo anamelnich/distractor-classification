@@ -37,11 +37,11 @@ icon_size = (150, 150)
 
 # Display configuration
 #   mac
-screen_width_cm = 28.66
-screen_height_cm = 17.92
+# screen_width_cm = 28.66
+# screen_height_cm = 17.92
 #thinkpad
-# screen_width_cm = 30.5
-# screen_height_cm = 18.0 
+screen_width_cm = 30.5
+screen_height_cm = 18.0 
 
 
 # Experiment parameters
