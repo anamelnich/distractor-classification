@@ -143,22 +143,22 @@ function beh = loadAnalysis(analysisFile, triggersFile, taskType)
     triggers = Tclean;
 
     % Determine variable names based on column count
-    baseVars = {'trial','trial_type','response','tpos','dpos','dot','class'};
+    baseVars = {'trial','trial_type','response','tpos','dpos','dot'};
     ncol = size(A,2);
-%     if strcmp(taskType,'decoding')
-%         if ncol == numel(baseVars)+1
-%             vars = [baseVars, {'class'}];
-%         elseif ncol == numel(baseVars)
-%             vars = baseVars;
-%         else
-%             error('Unexpected number of columns (%d) for decoding in %s', ncol, analysisFile);
-%         end
-%     else
+    if strcmp(taskType,'decoding')
+        if ncol == numel(baseVars)+1
+            vars = [baseVars, {'class'}];
+        elseif ncol == numel(baseVars)
+            vars = baseVars;
+        else
+            error('Unexpected number of columns (%d) for decoding in %s', ncol, analysisFile);
+        end
+    else
         if ncol ~= numel(baseVars)
             error('Unexpected number of columns (%d) for %s in %s', ncol, taskType, analysisFile);
         end
         vars = baseVars;
-%     end
+    end
 
     % Build behavior struct
     beh = cell2struct(mat2cell(A, size(A,1), ones(1,ncol)), vars, 2);

@@ -13,13 +13,13 @@ function [posterior, epoch] = singleClassificationRight(decoder, eeg)
 %% ---------------- Baseline Correction ---------------- %%
 if decoder.baseline_iscompute
     baseline = mean(eeg(decoder.baseline_idx, :, :), 1);
-    eeg = eeg - baseline;
+    eeg = eeg - baseline; % e.g. online 721 x 64 so eeg ~ 1.4 sec with baseline
 end 
 %% --------- ROI Extraction & Difference Wave ---------- %%
 
 if isequal(decoder.roi, 'P/PO')
     erpEpochs  = eeg(:, decoder.rightElectrodeIndices, :);
-    diffEpochs = eeg(:, decoder.rightElectrodeIndices, :) - eeg(:, decoder.leftElectrodeIndices, :);
+    diffEpochs = eeg(:, decoder.rightElectrodeIndices, :) - eeg(:, decoder.leftElectrodeIndices, :); % online 721x7
 elseif isequal(decoder.roi, 'None')
     erpEpochs  = eeg(:, :, :);
     diffEpochs = eeg(:, decoder.rightElectrodeIndices, :) - eeg(:, decoder.leftElectrodeIndices, :);

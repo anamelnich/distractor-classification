@@ -55,4 +55,5 @@ break_duration_ms = 10000
 feedback_duration_ms = 500
 
 # Trigger
-trigger_typ = 'USB2LPT'
+# trigger_typ = 'USB2LPT'
+trigger_typ = 'ARDUINO'

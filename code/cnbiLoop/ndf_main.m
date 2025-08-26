@@ -11,8 +11,8 @@ addpath(genpath('../functions'));
 skip_iterations = true;
 % Prepare and enter main loop
 try
-    decoderR = load('./decoderR.mat');
-    decoderL = load('./decoderL.mat');
+    load('./decoderR.mat');
+    load('./decoderL.mat');
     if decoderR.performance.tnr > decoderL.performance.tnr
         decoderN = decoderR;
     else
@@ -74,7 +74,7 @@ try
                     else
                         [ex_posterior, ~] = singleClassificationRight(decoderN,...
                             stream.eeg((first_index - 256):end, decoderN.eegChannels));
-                        threshold = deocderN.threshold;
+                        threshold = decoderN.threshold;
                     end
                     disp(['Time Frame: ' num2str(time_frame, '%.2f') ' Posteriors: ' num2str(ex_posterior, ' %.2f')]);
                     decoderR.onlinePosteriors = [decoderR.onlinePosteriors, ex_posterior];

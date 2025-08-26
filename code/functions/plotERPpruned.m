@@ -16,7 +16,7 @@ figure('Color','w', 'Units','inches', 'Position',[1 1 4 6]);
 T = tiledlayout(2,1, 'TileSpacing','compact', 'Padding','compact');
 annotations = {'A: Before pruning', 'B: After pruning'};
 datasets = {origData, bestData};
-yL = [-3 3]; % consistent y-limits
+yL = [-10 10]; % consistent y-limits
 
 for p = 1:2
     ax = nexttile;
@@ -26,6 +26,12 @@ for p = 1:2
     % trial indices
     dTrials  = D.labels==1;
     ndTrials = D.labels==0;
+    
+    % baseline correction
+    baseline_window = params.baseline_window;
+    baseline_idx = find(params.epochTime >= baseline_window(1) & params.epochTime <= baseline_window(2));
+    baseline = mean(D.data(baseline_idx, :, :), 1);
+    D.data = D.data - baseline;
 
     % compute grand-averages
     avgDl = squeeze(mean(mean(D.data(:,lIdx,dTrials),2),3));
@@ -44,25 +50,26 @@ for p = 1:2
     h2 = plot(ax, params.epochTime, diffND, 'LineWidth',2, 'Color', params.plotColor{5});
 
     % mean RT lines
-    meanRT_d  = mean(D.RT(dTrials))/1000;
-    meanRT_nd = mean(D.RT(ndTrials))/1000;
-    meanRT_diff = (meanRT_nd - meanRT_d)*1000;
-    h3 = xline(ax, meanRT_d,  '--', 'LineWidth',1.5, 'Color', params.plotColor{1},'HandleVisibility','off');
-    h4 = xline(ax, meanRT_nd, '--', 'LineWidth',1.5, 'Color', params.plotColor{5},'HandleVisibility','off');
+%     meanRT_d  = mean(D.RT(dTrials))/1000;
+%     meanRT_nd = mean(D.RT(ndTrials))/1000;
+%     meanRT_diff = (meanRT_nd - meanRT_d)*1000;
+%     h3 = xline(ax, meanRT_d,  '--', 'LineWidth',1.5, 'Color', params.plotColor{1},'HandleVisibility','off');
+%     h4 = xline(ax, meanRT_nd, '--', 'LineWidth',1.5, 'Color', params.plotColor{5},'HandleVisibility','off');
 
     % zero reference lines (excluded from legend)
     xline(ax, 0, '--', 'LineWidth',1.5, 'HandleVisibility','off');
     yline(ax, 0, '--', 'LineWidth',1.5, 'HandleVisibility','off');
 
     % axes limits and ticks
-    xlim(ax,[-0.1 0.65]);
+    xlim(ax,[-0.5 0.65]);
     ylim(ax,yL);
     xticks(ax,0:0.1:max(params.epochTime));
 
     % labels and title
     xlabel(ax,'Time (s)', 'FontName','Arial', 'FontSize',10);
     ylabel(ax,'Amplitude (\muV)', 'FontName','Arial', 'FontSize',10);
-    titleStr = sprintf('%s — nd-d: %.0f ms', annotations{p}, meanRT_diff);
+%     titleStr = sprintf('%s — nd-d: %.0f ms', annotations{p}, meanRT_diff);
+    titleStr = sprintf('%s', annotations{p});
     title(ax, titleStr, 'FontName','Arial', 'FontSize',12, 'FontWeight','bold');
 
     % legend 
