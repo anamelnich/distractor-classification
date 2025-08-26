@@ -54,6 +54,11 @@ stimulus_duration_ms = 2000
 break_duration_ms = 10000
 feedback_duration_ms = 500
 
+#Classification targets
+TPRr = 75 #%
+TPRl = 75 #%
+TNR = 75 #%
+
 # Trigger
 # trigger_typ = 'USB2LPT'
 trigger_typ = 'ARDUINO'

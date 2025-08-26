@@ -153,6 +153,12 @@ elif [ "$mode" = "d" ]
 ----> Decoding Mode selected <-----
 ----------------------------------
 "
+echo "----- Operating points for decoding (Enter = keep previous) -----"
+read -p "thrR (decoderR): " thrR
+read -p "thrL (decoderL): " thrL
+read -p "then (decoderN): " then
+read -p "margin (ambivalence band): " margin
+
 # Open GDF and log files
 datetime=$(date +%Y%m%d%H%M%S)
 basename=$dir/data/"e"$subID"_"$datetime"_decoding"
@@ -168,8 +174,8 @@ cl_rpc openxdf $gdffilename $logfilename ""
 
 # Run ndf file
 sleep 2
-# gnome-terminal -e "./matlabLauncher" --title "Distractor Detection" #gnome-terminal -e executes command in quotes in new terminal window
-gnome-terminal --title "Distractor Detection" -- bash -c "./matlabLauncher; echo 'Press Enter to close...'; read"
+
+gnome-terminal --title "Distractor Detection" -- bash -c "./matlabLauncher '$thrR' '$thrL' '$thrN' '$margin'; echo 'Press Enter to close...'; read"
 
 # Run python script
 sleep 20

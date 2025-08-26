@@ -1,3 +1,14 @@
+#!/bin/bash
 cd ./code/cnbiLoop
-matlab -nodesktop -nosplash -r ndf_main
+
+# Positional args: numbers or empty. Empty → pass [] so MATLAB keeps default.
+a1="${1}"; [ -z "$a1" ] && a1="[]"
+a2="${2}"; [ -z "$a2" ] && a2="[]"
+a3="${3}"; [ -z "$a3" ] && a3="[]"
+a4="${4}"; [ -z "$a4" ] && a4="[]"
+
+# (Optional) quick echo so you see what’s being sent
+echo "Launching ndf_main with: thrR=$a1 thrL=$a2 thrN=$a3 margin=$a4"
+
+matlab -nodesktop -nosplash -r "try, ndf_main($a1,$a2,$a3,$a4); catch ME, disp(getReport(ME)); end; quit"
 

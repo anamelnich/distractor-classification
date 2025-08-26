@@ -274,11 +274,20 @@ disp(' ');
 disp('DecoderL Updated at');
 disp(decoderL.datetime);
 
+if decoderR.performance.tnr > decoderL.performance.tnr
+    decoderN = decoderR;
+else
+    decoderN = decoderL;
+end
+
 save(sprintf('./decoders/%s_decoderR.mat', subjectID), 'decoderR');
 save('../cnbiLoop/decoderR.mat', 'decoderR');
 
 save(sprintf('./decoders/%s_decoderL.mat', subjectID), 'decoderL');
 save('../cnbiLoop/decoderL.mat', 'decoderL');
+
+save(sprintf('./decoders/%s_decoderN.mat', subjectID), 'decoderN');
+save('../cnbiLoop/decoderN.mat', 'decoderN');
 
 %% ================== Riemannian Classifier ==================== %%
 % trainingData = combineEpochs({data.training1.epochs});

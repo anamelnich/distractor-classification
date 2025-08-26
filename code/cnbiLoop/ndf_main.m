@@ -1,4 +1,4 @@
-function ndf_main()
+function ndf_main(thrR, thrL, thrN, margin)
 
 global stream ndf ID ids idm
 
@@ -13,13 +13,15 @@ skip_iterations = true;
 try
     load('./decoderR.mat');
     load('./decoderL.mat');
-    if decoderR.performance.tnr > decoderL.performance.tnr
-        decoderN = decoderR;
-    else
-        decoderN = decoderL;
-    end
+    load('./decoderN.mat');
+
     disp('Decoder Updated at');
     disp(decoderR.datetime);
+
+    if nargin>=1 && ~isempty(thrR),  decoderR.threshold  = thrR;  end
+    if nargin>=2 && ~isempty(thrL),  decoderL.threshold  = thrL;  end
+    if nargin>=3 && ~isempty(thrN),  decoderN.threshold  = thrN;  end
+    if nargin>=4 && ~isempty(margin), decoderR.thresholdMargin = margin; end
 
     ndf_initialization(); %sets up ndf configuration, should automatically setup ndf with 64 ch based on incoming data
     decoderR = initializeParams(decoderR);
@@ -100,6 +102,34 @@ folderPath = './online_decoders';
 timestamp = datestr(now, 'yyyymmdd_HHMMSS');
 filenameR = fullfile(folderPath,['decoderR_' timestamp '.mat']);
 save(filenameR, 'decoderR');
+save('./decoderR.mat', 'decoderR');
+
+filenameL = fullfile(folderPath,['decoderL_' timestamp '.mat']);
+save(filenameL, 'decoderL');
+save('./decoderL.mat', 'decoderL');
+
+filenameN = fullfile(folderPath,['decoderN_' timestamp '.mat']);
+save(filenameN, 'decoderN');
+save('./decoderN.mat', 'decoderN');
+
+fprintf('Decoder ambivalence margin: %.4f\n', decoderR.thresholdMargin);
+fprintf('DecoderR threshold: %.4f', decoderR.threshold);
+fprintf('DecoderL threshold: %.4f', decoderL.threshold);
+fprintf('DecoderN threshold: %.4f\n\n', decoderN.threshold);
+
+% Save thresholds
+logFile = fullfile(folderPath, 'thresholds_log.txt');
+fid = fopen(logFile, 'a');  % append mode (creates file if it doesn't exist)
+if fid ~= -1
+    fprintf(fid, 'Run timestamp: %s\n', datestr(now,'yyyy-mm-dd HH:MM:SS'));
+    fprintf(fid, 'Decoder ambivalence margin: %.4f\n', decoderR.thresholdMargin)
+    fprintf(fid, 'DecoderR threshold: %.4f', decoderR.threshold);
+    fprintf(fid, 'DecoderL threshold: %.4f', decoderL.threshold);
+    fprintf(fid, 'DecoderN threshold: %.4f\n\n', decoderN.threshold);
+    fclose(fid);
+else
+    warning('Could not open thresholds log file for writing.');
+end
 
 catch exception
     ndf_printexception(exception);

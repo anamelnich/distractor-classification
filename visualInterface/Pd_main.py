@@ -328,6 +328,8 @@ def run_decoding_mode(basename):
 
     # performance counters
     cmTP = cmFP = cmTN = cmFN = 0
+    cmTPr = cmTPl = cmFNr = cmFNl = 0
+
     score = 0
     uncertain_count=0
 
@@ -363,6 +365,7 @@ def run_decoding_mode(basename):
         dpos      = d_pos[trial_idx]
         shape_map = shape_positions[trial_idx]
         t_side    = 1 if tpos in lat_pos else 0
+        d_side    = 1 if dpos in right_pos else (2 if dpos in left_pos else 0)
 
         draw_map = {
             "square":  utils.draw_square,
@@ -458,6 +461,10 @@ def run_decoding_mode(basename):
                 response_text = "Score: +2"; response_color = (0,255,0)
                 score+=2
                 icon = thumb_up; cmTP += 1; score += 2
+                if d_side == 1:
+                    cmTPr += 1
+                elif d_side == 2:
+                    cmTPl += 1
             else:
                 response_text = "Score: -1"; response_color = (255,0,0)
                 score-=1
@@ -470,6 +477,10 @@ def run_decoding_mode(basename):
                 response_text = "Score: -1"; response_color = (255,0,0)
                 score-=1
                 icon = thumb_down; cmFN += 1; score -= 2
+                if d_side == 1:
+                    cmFNr += 1
+                elif d_side == 2:
+                    cmFNl += 1
             else:
                 response_text = "Score: +1"; response_color = (0,255,0)
                 score+=1
@@ -556,6 +567,24 @@ def run_decoding_mode(basename):
     print(f"TPR:      {TPR:.2f}%")
     print(f"TNR:      {TNR:.2f}%")
     print(f"% uncertain: {prct_uncertain:.2f}")
+
+    TPRr = 100*cmTPr/(cmTPr+cmFNr) if (cmTPr+cmFNr)>0 else 0
+    TPRl = 100*cmTPl/(cmTPl+cmFPl) if (cmTPl+cmFPl)>0 else 0
+    print(f"TPR right distractor:      {TPRr:.2f}%")
+    print(f"TNR left distractor:       {TNRr:.2f}%")
+
+    if TPRr >= config.TPRr:
+        print("Increase decoderR threshold by 0.025")
+    if TPRr < config.TPRr:
+        print("Decrease decoderR threshold by 0.025")
+    if TPRl >= config.TPRl:
+        print("Increase decoderL threshold by 0.025")
+    if TPRl < config.TPRl:
+        print("Decrease decoderL threshold by 0.025")
+    if TNR >= config.TNR:
+        print("Decreaase decoderN threshold by 0.025")
+    if TNR < config.TNR:
+        print("Increaase decoderN threshold by 0.025")
 
     listener_running[0] = False
     listener_thread.join()
