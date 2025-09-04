@@ -27,7 +27,19 @@ def add_trigger(code):
     if code != None:
         HWTrigger.signal(code)
 
-HWTrigger = Trigger('USB2LPT')
+try:
+    HWTrigger = Trigger('USB2LPT')
+    print("Trigger initialized with USB2LPT.")
+except Exception as e1:
+    print("USB2LPT trigger failed:", e1)
+    try:
+        HWTrigger = Trigger('ARDUINO')
+        print("Trigger initialized with ARDUINO.")
+    except Exception as e2:
+        print("ARDUINO trigger also failed:", e2)
+        print("ERROR: No valid trigger could be initialized.")
+
+
 HWTrigger.init(50)
 trigger=[]
 

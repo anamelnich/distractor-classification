@@ -1,15 +1,11 @@
 import os
 from datetime import datetime
 
-# Trigger list
-# 6 = Fixation
-# 110 = ND target lateral
-# 100 = ND target midline
-# 106, 107, 108 = D left
-# 102, 103, 104 = D right
-# 11 = correct
-# 12 = incorrect
-# 13 = time out
+# 4 = Fixation
+# 8 = ND 
+# 32 = D right
+# 44 = D left
+# 64 = response
 
 
 MODE = 'test' # train, decode
@@ -59,6 +55,3 @@ TPRr = 75 #%
 TPRl = 75 #%
 TNR = 75 #%
 
-# Trigger
-# trigger_typ = 'USB2LPT'
-trigger_typ = 'ARDUINO'

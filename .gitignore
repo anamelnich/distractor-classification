@@ -1,3 +1,7 @@
+code/cnbiLoop/online_decoders/*
+!code/cnbiLoop/online_decoders/.gitkeep
+code/decoder/figures/*
+!code/decoder/figures/.gitkeep
 code/decoder/results/
 data/
 .DS_Store

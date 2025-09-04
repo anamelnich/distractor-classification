@@ -60,20 +60,20 @@ try
             if (~any(isnan(stream.eeg(:))))
                 %returns sample (out of 768) where one of these triggers is found
                 % first_index = find(ismember(stream.trigger, [102 104 100 110]), 1, 'first'); 
-                first_index = find(ismember(stream.trigger, [102 103 104 106 107 108 100 110]), 1, 'first');
+                first_index = find(ismember(stream.trigger, [32 44 64]), 1, 'first');
                 %disp(first_index)
                 if (first_index >= 256) & (first_index <= 308) % 0.5 sec baseline, need 256 for decoder.baseline_idx to work correctly
                     label_value = stream.trigger(first_index);
                     fprintf('Label value at first_index (%d): %d\n', first_index, label_value);
-                    if ismember(label_value, [102 103 104])
+                    if label_value == 32
                         [ex_posterior, ~] = singleClassificationRight(decoderR,...
                             stream.eeg((first_index - 256):end, decoderR.eegChannels));
                         threshold = decoderR.threshold;
-                    elseif ismember(label_value, [106 107 108])
+                    elseif label_value == 44
                         [ex_posterior, ~] = singleClassificationRight(decoderL,...
                             stream.eeg((first_index - 256):end, decoderL.eegChannels));
                         threshold = decoderL.threshold;
-                    else
+                    elseif label_value == 64
                         [ex_posterior, ~] = singleClassificationRight(decoderN,...
                             stream.eeg((first_index - 256):end, decoderN.eegChannels));
                         threshold = decoderN.threshold;
@@ -113,8 +113,8 @@ save(filenameN, 'decoderN');
 save('./decoderN.mat', 'decoderN');
 
 fprintf('Decoder ambivalence margin: %.4f\n', decoderR.thresholdMargin);
-fprintf('DecoderR threshold: %.4f', decoderR.threshold);
-fprintf('DecoderL threshold: %.4f', decoderL.threshold);
+fprintf('DecoderR threshold: %.4f\n', decoderR.threshold);
+fprintf('DecoderL threshold: %.4f\n', decoderL.threshold);
 fprintf('DecoderN threshold: %.4f\n\n', decoderN.threshold);
 
 % Save thresholds
@@ -122,9 +122,9 @@ logFile = fullfile(folderPath, 'thresholds_log.txt');
 fid = fopen(logFile, 'a');  % append mode (creates file if it doesn't exist)
 if fid ~= -1
     fprintf(fid, 'Run timestamp: %s\n', datestr(now,'yyyy-mm-dd HH:MM:SS'));
-    fprintf(fid, 'Decoder ambivalence margin: %.4f\n', decoderR.thresholdMargin)
-    fprintf(fid, 'DecoderR threshold: %.4f', decoderR.threshold);
-    fprintf(fid, 'DecoderL threshold: %.4f', decoderL.threshold);
+    fprintf(fid, 'Decoder ambivalence margin: %.4f\n', decoderR.thresholdMargin);
+    fprintf(fid, 'DecoderR threshold: %.4f\n', decoderR.threshold);
+    fprintf(fid, 'DecoderL threshold: %.4f\n', decoderL.threshold);
     fprintf(fid, 'DecoderN threshold: %.4f\n\n', decoderN.threshold);
     fclose(fid);
 else

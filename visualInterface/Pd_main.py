@@ -145,6 +145,9 @@ def run_training_mode(basename):
         dpos      = d_pos[trial_idx]
         shape_map = shape_positions[trial_idx]
         t_side = 1 if tpos in lat_pos else 0
+        d_side = 1 if dpos in right_pos else (2 if dpos in left_pos else 0)
+
+
         draw_map = {
             "circle":   utils.draw_circle,
             "square":   utils.draw_square,
@@ -162,13 +165,19 @@ def run_training_mode(basename):
         pygame.draw.line(screen, (225, 225, 225), (x_center - config.fixation_size, y_center), (x_center + config.fixation_size, y_center), config.line_width)
         pygame.draw.line(screen, (225, 225, 225), (x_center, y_center - config.fixation_size), (x_center, y_center + config.fixation_size), config.line_width)
         pygame.display.update()
-        utils.add_trigger(6, trial_idx)
+        utils.add_trigger(4, trial_idx)
         pygame.time.delay(config.fixation_duration_ms)
 
         array_start_time = pygame.time.get_ticks()
         trial_end = False
         resp_recorded   = False
-        start_trigger = int(f"1{t_side}{d_pos[trial_idx]}")
+        # start_trigger = int(f"1{t_side}{d_pos[trial_idx]}")
+        if d_side==0:
+            start_trigger = 8
+        elif d_side==1:
+            start_trigger=32
+        elif d_side==2:
+            start_trigger=44
         utils.add_trigger(start_trigger, trial_idx)
 
         while not trial_end:
@@ -179,7 +188,7 @@ def run_training_mode(basename):
                 trial_end = True
                 if not resp_recorded:               # no response → timeout
                     response     = 3
-                    utils.add_trigger(13, trial_idx)
+                    utils.add_trigger(64, trial_idx)
             else:
                 # screen.fill((0,0,0))
 
@@ -221,7 +230,7 @@ def run_training_mode(basename):
 
                         response     = 1 if is_correct else 2
                         trigger_code = 11 if is_correct else 12
-                        utils.add_trigger(trigger_code, trial_idx)
+                        utils.add_trigger(64, trial_idx)
                         break
         screen.fill((0, 0, 0))
         if response == 1:
@@ -388,14 +397,20 @@ def run_decoding_mode(basename):
                          (x_center, y_center+config.fixation_size),
                          config.line_width)
         pygame.display.update()
-        utils.add_trigger(6, trial_idx)
+        utils.add_trigger(4, trial_idx)
         pygame.time.delay(config.fixation_duration_ms)
 
         # stimulus + send start trigger
         array_start = pygame.time.get_ticks()
         trial_end   = False
         resp_recorded = False
-        start_tr    = int(f"1{t_side}{dpos}")
+        # start_tr    = int(f"1{t_side}{dpos}")
+        if d_side==0:
+            start_tr = 8
+        elif d_side==1:
+            start_tr=32
+        elif d_side==2:
+            start_tr=44
         utils.add_trigger(start_tr, trial_idx)
         wait = False
         while not trial_end:
@@ -403,7 +418,7 @@ def run_decoding_mode(basename):
             if now - array_start >= config.stimulus_duration_ms:
                 trial_end = True
                 if not resp_recorded:
-                    utils.add_trigger(13, trial_idx)
+                    utils.add_trigger(64, trial_idx)
                     response = 3
             elif wait:
                 screen.fill((0, 0, 0))
@@ -447,7 +462,7 @@ def run_decoding_mode(basename):
 
                         response     = 1 if is_correct else 2
                         trigger_code = 11 if is_correct else 12
-                        utils.add_trigger(trigger_code, trial_idx)
+                        utils.add_trigger(64, trial_idx)
                         screen.fill((0, 0, 0))
                         pygame.display.update()
                         # break
@@ -569,9 +584,9 @@ def run_decoding_mode(basename):
     print(f"% uncertain: {prct_uncertain:.2f}")
 
     TPRr = 100*cmTPr/(cmTPr+cmFNr) if (cmTPr+cmFNr)>0 else 0
-    TPRl = 100*cmTPl/(cmTPl+cmFPl) if (cmTPl+cmFPl)>0 else 0
+    TPRl = 100*cmTPl/(cmTPl+cmFNl) if (cmTPl+cmFNl)>0 else 0
     print(f"TPR right distractor:      {TPRr:.2f}%")
-    print(f"TNR left distractor:       {TNRr:.2f}%")
+    print(f"TPR left distractor:       {TPRl:.2f}%")
 
     if TPRr >= config.TPRr:
         print("Increase decoderR threshold by 0.025")
@@ -697,13 +712,19 @@ def run_test_mode(basename):
         pygame.draw.line(screen, (225, 225, 225), (x_center - config.fixation_size, y_center), (x_center + config.fixation_size, y_center), config.line_width)
         pygame.draw.line(screen, (225, 225, 225), (x_center, y_center - config.fixation_size), (x_center, y_center + config.fixation_size), config.line_width)
         pygame.display.update()
-        utils.add_trigger(6, trial_idx)
+        utils.add_trigger(4, trial_idx)
         pygame.time.delay(config.fixation_duration_ms)
 
         array_start_time = pygame.time.get_ticks()
         trial_end = False
         resp_recorded   = False
-        start_trigger = int(f"1{t_side}{d_pos[trial_idx]}")
+        # start_trigger = int(f"1{t_side}{d_pos[trial_idx]}")
+        if d_side==0:
+            start_trigger = 8
+        elif d_side==1:
+            start_trigger=32
+        elif d_side==2:
+            start_trigger=44
         utils.add_trigger(start_trigger, trial_idx)
 
         while not trial_end:
@@ -714,7 +735,7 @@ def run_test_mode(basename):
                 trial_end = True
                 if not resp_recorded:               # no response → timeout
                     response     = 3
-                    utils.add_trigger(13, trial_idx)
+                    utils.add_trigger(64, trial_idx)
             else:
                 # screen.fill((0,0,0))
 
@@ -756,7 +777,7 @@ def run_test_mode(basename):
 
                         response     = 1 if is_correct else 2
                         trigger_code = 11 if is_correct else 12
-                        utils.add_trigger(trigger_code, trial_idx)
+                        utils.add_trigger(64, trial_idx)
                         break
         screen.fill((0, 0, 0))
         if response == 1:

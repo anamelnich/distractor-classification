@@ -16,23 +16,13 @@ delete sopen.mat
 cfg = setParams(data.training1.header);
 cfg.fsamp = data.training1.header.SampleRate;  
 
-subjNum = sscanf(subjectID, 'e%d');
+cfg.eegChannels = 1:64; 
+cfg.eogChannels = 65:66;
+cfg.triggerChannel = 67;
 
-if subjNum <= 8   
-    cfg.eegChannels = 1:64; 
-    cfg.eogChannels = 65:68;
-    cfg.triggerChannel = 69;
-    
-    cfg.chanLabels = data.training1.header.Label;
-    cfg.chanLabels(65:69)=[];
-else 
-    cfg.eegChannels = 1:64; 
-    cfg.eogChannels = 65:66;
-    cfg.triggerChannel = 67;
-    
-    cfg.chanLabels = data.training1.header.Label;
-    cfg.chanLabels(65:67)=[];
-end 
+cfg.chanLabels = data.training1.header.Label;
+cfg.chanLabels(65:67)=[];
+ 
 %%
 fields = fieldnames(data);
 for i = 1:numel(fields)
@@ -42,18 +32,9 @@ for i = 1:numel(fields)
         continue;
     end
 
-    if subjNum <= 7
-        trigtype = 0;
-        % trigtype = 3;
-    elseif subjNum <=15
-        trigtype = 1;
-%         trigtype = 4;
-    else 
-        trigtype = 2;
-    end
+    trigtype = 2;
     data.(fname) = preprocessDataset(data.(fname), cfg, fname, trigtype);
-    % trigType = 3 left distractor only on subjects 1-8
-    % trigType =  2 for new left distractor only sibjects
+    
 end
 
 fields = fieldnames(data);
@@ -118,6 +99,8 @@ for i = 1:numel(fields)
 end
 
 %% ================== Classification Setup ==================== %%
+nIter=15;
+
 trainingData = combineEpochs({data.training1.epochs});
 rightMask = trainingData.labels ~=2 ; % distractor right trials --> left side decoder
 rightDdata.data = trainingData.data(:,:,rightMask);
@@ -125,7 +108,7 @@ rightDdata.labels = trainingData.labels(rightMask);
 rightDdata.file_id = trainingData.file_id(rightMask) ; 
 rightDdata.eof = trainingData.eof ; 
 
-[performanceR, bestItrDataR] = iterativePrune(rightDdata, cfg, 15)
+[performanceR, bestItrDataR] = iterativePrune(rightDdata, cfg, nIter);
 
 leftMask = trainingData.labels ~=1 ; % distractor left trials --> right side decoder
 leftDdata.data = trainingData.data(:,:,leftMask);
@@ -134,11 +117,11 @@ leftDdata.labels(leftDdata.labels == 2) = 1;
 leftDdata.file_id = trainingData.file_id(leftMask) ; 
 leftDdata.eof = trainingData.eof ; 
 
-[performanceL, bestItrDataL] = iterativePrune(leftDdata, cfg, 15)
+[performanceL, bestItrDataL] = iterativePrune(leftDdata, cfg, nIter);
 
 
 %% ================== Pruning tests ==================== %%
-nIter=15;
+
 iters = 1:nIter;
 historyR = performanceR.history;
 historyL = performanceL.history;
@@ -207,6 +190,8 @@ range = linspace(0.35,0.65,61);
 thresholdR = t(x==opt(1) & y==opt(2));
 
 % Compute confusion metrics
+disp(' ');
+disp('RIGHT-DISTRACTOR CLASSIFICATION PERFORMANCE (deocderR)')
 [tprR, tnrR, accR] = printConfusionMatrix(allLabels, ...
     trainingData.posteriorsR >= thresholdR);
 fprintf('AUPRC = %.3f, TPR = %.3f, TNR = %.3f, ACC = %.3f, thr = %.3f\n', ...
@@ -234,6 +219,8 @@ range = linspace(0.35,0.65,61);
 thresholdL = t(x==opt(1) & y==opt(2));
 
 % Compute confusion metrics
+disp(' ');
+disp('LEFT-DISTRACTOR CLASSIFICATION PERFORMANCE (deocderL)') 
 [tprL, tnrL, accL] = printConfusionMatrix(allLabels, ...
     trainingData.posteriorsL >= thresholdL);
 fprintf('AUPRC = %.3f, TPR = %.3f, TNR = %.3f, ACC = %.3f, thr = %.3f\n', ...

@@ -6,7 +6,7 @@ function index = computeIndex(trigger,trigType)
     elseif trigType == 0
         [pos, typ] = ismember(trigger, [202 204 100 110]); %110
     elseif trigType == 2
-        [pos, typ] = ismember(trigger, [102 103 104 106 107 108 100 110]); % 8 shapes
+        [pos, typ] = ismember(trigger, [32 44 8]); % right left no
     elseif trigType == 3
         [pos, typ] = ismember(trigger, [204 100 110]); % left distractors only
     elseif trigType == 4
@@ -15,11 +15,8 @@ function index = computeIndex(trigger,trigType)
     index.pos = find(pos); 
     typ_matched = typ(pos);
     index.typ = zeros(size(typ_matched));
-    if trigType == 2
-        index.typ(typ_matched < 4) = 1; %dright
-        index.typ(typ_matched > 3 & typ_matched < 7) = 2; %dleft
-        index.typ(typ_matched >= 7) = 0; %dnone
-    elseif trigType == 3 || trigType == 4
+
+    if trigType == 3 || trigType == 4
         index.typ(typ_matched == 1) = 1; %dleft
         index.typ(typ_matched > 1) = 0; %dnone
     else

@@ -258,7 +258,18 @@ def get_random_delay(delay_config):
 def init_hardware_trigger():
     global HWTrigger
     from python_client import Trigger
-    HWTrigger = Trigger(config.trigger_typ)
+    try:
+        HWTrigger = Trigger('USB2LPT')
+        print("Trigger initialized with USB2LPT.")
+    except Exception as e1:
+        print("USB2LPT trigger failed:", e1)
+        try:
+            HWTrigger = Trigger('ARDUINO')
+            print("Trigger initialized with ARDUINO.")
+        except Exception as e2:
+            print("ARDUINO trigger also failed:", e2)
+            print("ERROR: No valid trigger could be initialized.")
+
     HWTrigger.init(50)
 
 

@@ -143,7 +143,7 @@ function beh = loadAnalysis(analysisFile, triggersFile, taskType)
     triggers = Tclean;
 
     % Determine variable names based on column count
-    baseVars = {'trial','trial_type','response','tpos','dpos','dot'};
+    baseVars = {'trial','trial_type','response','tpos','dpos','dot','ITI','BCI_output'};
     ncol = size(A,2);
     if strcmp(taskType,'decoding')
         if ncol == numel(baseVars)+1

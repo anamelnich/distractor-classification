@@ -153,10 +153,10 @@ elif [ "$mode" = "d" ]
 ----> Decoding Mode selected <-----
 ----------------------------------
 "
-echo "----- Operating points for decoding (Enter = keep previous) -----"
+echo "----- Operating points for decoding, e.g. 0.5 (Enter = keep previous) -----"
 read -p "thrR (decoderR): " thrR
 read -p "thrL (decoderL): " thrL
-read -p "then (decoderN): " then
+read -p "thrN (decoderN): " thrN
 read -p "margin (ambivalence band): " margin
 
 # Open GDF and log files
