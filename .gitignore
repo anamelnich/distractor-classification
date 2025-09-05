@@ -5,3 +5,4 @@ code/decoder/figures/*
 code/decoder/results/
 data/
 .DS_Store
+code/decoder/decoders

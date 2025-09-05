@@ -60,7 +60,7 @@ try
             if (~any(isnan(stream.eeg(:))))
                 %returns sample (out of 768) where one of these triggers is found
                 % first_index = find(ismember(stream.trigger, [102 104 100 110]), 1, 'first'); 
-                first_index = find(ismember(stream.trigger, [32 44 64]), 1, 'first');
+                first_index = find(ismember(stream.trigger, [8 32 44]), 1, 'first'); % ND, Dright, Dleft
                 %disp(first_index)
                 if (first_index >= 256) & (first_index <= 308) % 0.5 sec baseline, need 256 for decoder.baseline_idx to work correctly
                     label_value = stream.trigger(first_index);
@@ -73,7 +73,7 @@ try
                         [ex_posterior, ~] = singleClassificationRight(decoderL,...
                             stream.eeg((first_index - 256):end, decoderL.eegChannels));
                         threshold = decoderL.threshold;
-                    elseif label_value == 64
+                    elseif label_value == 8
                         [ex_posterior, ~] = singleClassificationRight(decoderN,...
                             stream.eeg((first_index - 256):end, decoderN.eegChannels));
                         threshold = decoderN.threshold;

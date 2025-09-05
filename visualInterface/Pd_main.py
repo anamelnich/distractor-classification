@@ -589,17 +589,17 @@ def run_decoding_mode(basename):
     print(f"TPR left distractor:       {TPRl:.2f}%")
 
     if TPRr >= config.TPRr:
-        print("Increase decoderR threshold by 0.025")
+        print("Increase decoderR threshold by 0.02")
     if TPRr < config.TPRr:
-        print("Decrease decoderR threshold by 0.025")
+        print("Decrease decoderR threshold by 0.02")
     if TPRl >= config.TPRl:
-        print("Increase decoderL threshold by 0.025")
+        print("Increase decoderL threshold by 0.02")
     if TPRl < config.TPRl:
-        print("Decrease decoderL threshold by 0.025")
+        print("Decrease decoderL threshold by 0.02")
     if TNR >= config.TNR:
-        print("Decreaase decoderN threshold by 0.025")
+        print("Decreaase decoderN threshold by 0.02")
     if TNR < config.TNR:
-        print("Increaase decoderN threshold by 0.025")
+        print("Increaase decoderN threshold by 0.02")
 
     listener_running[0] = False
     listener_thread.join()

@@ -8,6 +8,7 @@ from math import atan2, degrees
 from pathlib import Path
 from PIL import Image, ImageTk
 from datetime import datetime
+import os, sys
 
 # ───────────────────────────────
 # CONFIG: put your 14 images here
@@ -43,7 +44,7 @@ CENTER_MIN_RADIUS = 0.18  # relative (0..1 of half-diagonal-ish); tweak for your
 # ───────────────────────────────
 # Helpers: angle/sector & images
 # ───────────────────────────────
-def angle_to_sector(angle_deg: float) -> int:
+def angle_to_sector(angle_deg: float):
     """
     Convert a standard math angle (0°=right, CCW positive) into sectors:
     Sector 1 starts at 12 o'clock and increases CLOCKWISE in 45° steps.
@@ -56,7 +57,7 @@ def angle_to_sector(angle_deg: float) -> int:
     if sector > 8: sector = 8
     return sector
 
-def rel_click_to_sector(rx: float, ry: float) -> int:
+def rel_click_to_sector(rx: float, ry: float):
     """
     rx, ry are click coords relative to image box [0..1]x[0..1],
     with (0,0)=top-left. We compute vector from center & get angle.
@@ -66,7 +67,7 @@ def rel_click_to_sector(rx: float, ry: float) -> int:
     ang = degrees(atan2(dy, dx)) % 360.0  # 0°=right, CCW
     return angle_to_sector(ang)
 
-def list_images_from_answers() -> list[tuple[Path, int]]:
+def list_images_from_answers():
     """
     Return [(path, sector), ...] only for files that exist in the ./img folder.
     """
@@ -83,11 +84,15 @@ def list_images_from_answers() -> list[tuple[Path, int]]:
 # Main App
 # ───────────────────────────────
 class GapTestApp(tk.Tk):
-    def __init__(self):
+    def __init__(self, subject_id: str, output_dir: str):
         super().__init__()
         self.title("Color Gap Test")
         self.geometry("1000x800")
         self.minsize(640, 540)
+
+        self.subject_id = subject_id              # e.g., "subject0"
+        self.output_dir = Path(output_dir)        # e.g., "/path/to/data/e0_20250905"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Data
         self.items = list_images_from_answers()
@@ -244,7 +249,7 @@ class GapTestApp(tk.Tk):
     def _cant_see(self):
         self._record_and_advance(None, method="cantsee")
 
-    def _record_and_advance(self, sector: int | None, method: str):
+    def _record_and_advance(self, sector, method):
         correct = (sector == self.current_expected) if sector is not None else False
         self.responses.append({
             "file": self.current_img_path.name,
@@ -406,29 +411,26 @@ class GapTestApp(tk.Tk):
         btns.pack(fill=tk.X, pady=10)
         ttk.Button(btns, text="Restart test", command=self._restart).pack(side=tk.RIGHT)
 
+    
     def _auto_save_results(self):
-        """Automatically save test results to a text file with timestamp"""
-        # Generate timestamp for filename
+        """Save results to <output_dir>/colortest_<subjectID>_<timestamp>.txt"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"color_vision_test_results_{timestamp}.txt"
-        
-        # Save to the same folder as the script
-        script_dir = Path(__file__).parent
-        file_path = script_dir / filename
-        
+        filename = f"colortest_{self.subject_id}_{timestamp}.txt"
+        file_path = self.output_dir / filename
+
         try:
             with open(file_path, 'w', encoding='utf-8') as f:
-                # Write header
+                # Header
                 f.write("Color Vision Test Results\n")
                 f.write("=" * 50 + "\n")
+                f.write(f"Subject: {self.subject_id}\n")
                 f.write(f"Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-                
-                # Write summary
+
+                # Summary
                 correct = sum(1 for r in self.responses if r["correct"])
                 total = len(self.responses)
                 f.write(f"Score: {correct} / {total}\n")
-                
-                # Write assessment
+
                 if correct == 14:
                     assessment = "Normal color vision"
                 elif correct >= 11:
@@ -437,78 +439,25 @@ class GapTestApp(tk.Tk):
                     assessment = "Moderate color vision deficiency"
                 else:
                     assessment = "Severe color vision deficiency"
-                
                 f.write(f"Assessment: {assessment}\n\n")
-                
-                # Write detailed results
+
+                # Details
                 f.write("Detailed Results:\n")
                 f.write("-" * 50 + "\n")
                 f.write(f"{'#':<3} {'Image':<35} {'Expected':<8} {'Your':<6} {'Result':<10} {'Method':<12}\n")
                 f.write("-" * 50 + "\n")
-                
                 for i, r in enumerate(self.responses, start=1):
                     res = "Correct" if r["correct"] else "Incorrect"
                     your = "—" if r["sector"] is None else str(r["sector"])
                     meth = "Could not see" if r["method"] == "cantsee" else "Clicked"
                     f.write(f"{i:<3} {r['file']:<35} {r['expected']:<8} {your:<6} {res:<10} {meth:<12}\n")
-            
-            # Store the saved file path for display
+
             self.saved_file_path = str(file_path)
-            
-        except Exception as e:
-            print(f"Failed to auto-save results: {str(e)}")
 
-    def _save_results(self):
-        """Save test results to a text file with timestamp"""
-        # Generate timestamp for filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"color_vision_test_results_{timestamp}.txt"
-        
-        # Save to the same folder as the script
-        script_dir = Path(__file__).parent
-        file_path = script_dir / filename
-        
-        try:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                # Write header
-                f.write("Color Vision Test Results\n")
-                f.write("=" * 50 + "\n")
-                f.write(f"Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-                
-                # Write summary
-                correct = sum(1 for r in self.responses if r["correct"])
-                total = len(self.responses)
-                f.write(f"Score: {correct} / {total}\n")
-                
-                # Write assessment
-                if correct == 14:
-                    assessment = "Normal color vision"
-                elif correct >= 11:
-                    assessment = "Mild color vision deficiency"
-                elif correct >= 6:
-                    assessment = "Moderate color vision deficiency"
-                else:
-                    assessment = "Severe color vision deficiency"
-                
-                f.write(f"Assessment: {assessment}\n\n")
-                
-                # Write detailed results
-                f.write("Detailed Results:\n")
-                f.write("-" * 50 + "\n")
-                f.write(f"{'#':<3} {'Image':<35} {'Expected':<8} {'Your':<6} {'Result':<10} {'Method':<12}\n")
-                f.write("-" * 50 + "\n")
-                
-                for i, r in enumerate(self.responses, start=1):
-                    res = "Correct" if r["correct"] else "Incorrect"
-                    your = "—" if r["sector"] is None else str(r["sector"])
-                    meth = "Could not see" if r["method"] == "cantsee" else "Clicked"
-                    f.write(f"{i:<3} {r['file']:<35} {r['expected']:<8} {your:<6} {res:<10} {meth:<12}\n")
-            
-            messagebox.showinfo("Success", f"Results saved to:\n{file_path}")
-            
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save results:\n{str(e)}")
+            print(f"Failed to auto-save results: {e}")
 
+ 
     def _restart(self):
         self.idx = 0
         self.responses.clear()
@@ -520,6 +469,13 @@ class GapTestApp(tk.Tk):
 
 
 if __name__ == "__main__":
-    app = GapTestApp()
+    if len(sys.argv) < 3:
+        print("Usage: python color_gap_test_gui.py <subjectID> <output_folder>")
+        sys.exit(1)
+
+    subject_id = sys.argv[1]   # e.g., "subject0"
+    output_dir = sys.argv[2]   # e.g., "/path/to/data/e0_20250905"
+
+    app = GapTestApp(subject_id, output_dir)
     if app.winfo_exists():
         app.mainloop()
