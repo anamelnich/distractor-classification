@@ -189,6 +189,9 @@ elseif isequal(params.classify.reduction.type, 'r2')
     classifierEpochs = classifierEpochs(keepIdx, :);
 end
 
+%% ==================== Matrix Check  ==================== %%
+% kappa = checkCovCondition(classifierEpochs, trainLabels);
+
 %% ==================== Model Training ==================== %%
 
 if strcmp(params.classify.type,'SVM')
@@ -238,7 +241,7 @@ if strcmp(params.classify.type,'SVM')
     
 elseif any(strcmp(params.classify.type, {'linear','diaglinear'}))
     modelRaw = fitcdiscr(classifierEpochs', trainLabels, ...
-    'Prior', 'uniform', 'DiscrimType', params.classify.type);
+    'Prior', 'uniform', 'DiscrimType', params.classify.type, 'Gamma',params.classify.gamma);
 
     % Transform LDA output to probability using a sigmoid fit
     w = modelRaw.Coeffs(2,1).Linear;

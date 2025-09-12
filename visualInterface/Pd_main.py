@@ -695,6 +695,7 @@ def run_test_mode(basename):
         dpos      = d_pos[trial_idx]
         shape_map = shape_positions[trial_idx]
         t_side = 1 if tpos in lat_pos else 0
+        d_side    = 1 if dpos in right_pos else (2 if dpos in left_pos else 0)
         draw_map = {
             "circle":   utils.draw_circle,
             "square":   utils.draw_square,

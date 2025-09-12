@@ -59,10 +59,10 @@ for iter = 1:nIter
         data.posteriors, 1, 'Prior','uniform', 'xCrit','reca','yCrit','prec');
 
     % Find optimal threshold over a limited range
-    range = linspace(0.35,0.65,61);
+    range = linspace(0.2,0.8,121);
     [x,y,t,~,opt] = perfcurve(data.labels, ...
         data.posteriors, 1, 'Prior','uniform','TVals',range);
-    threshold = t(x==opt(1) & y==opt(2));
+    threshold = findThreshold(y,x,t);
 
     % Compute confusion metrics
     [tpr, tnr, acc] = printConfusionMatrix(data.labels, ...

@@ -21,7 +21,7 @@ combinedEpochs.file_id = [];
 combinedEpochs.eof     = [];
 combinedHasRT = true;
 combinedEpochs.RT      = [];
-combinedEpochs.tpos    = [];
+% combinedEpochs.tpos    = [];
 % combinedEpochs.dpos    = [];
 
 file_id_offset = 0;
@@ -51,7 +51,7 @@ for i = 1:t
     % RT handling
     if isfield(cur, 'RT') && numel(cur.RT)==nTrials
         combinedEpochs.RT = [combinedEpochs.RT; cur.RT(:)];
-        combinedEpochs.tpos = [combinedEpochs.tpos; cur.tpos(:)];
+%         combinedEpochs.tpos = [combinedEpochs.tpos; cur.tpos(:)];
         % combinedEpochs.dpos = [combinedEpochs.dpos; cur.dpos(:)];
     else
         % fill with NaNs for missing or mismatched RT

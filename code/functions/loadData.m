@@ -168,18 +168,10 @@ function beh = loadAnalysis(analysisFile, triggersFile, taskType)
 
     % Compute RT with error handling
     try
-        if strcmp(taskType,'decoding')
-            starts = triggers(triggers(:,2)>50,3);
-            n13    = sum(triggers(:,2)==13);
-            if n13>30
-                resp = triggers(2:3:end,3);
-            else
-                resp = triggers(triggers(:,2)<50,3);
-            end
-        else
-            starts = triggers(triggers(:,2)>50,3);
-            resp   = triggers(triggers(:,2)<50,3);
-        end
+        
+        starts = triggers(ismember(triggers(:,2), [8 32 44]), 3);
+        resp   = triggers(triggers(:,2)==64,3);
+ 
         beh.RT = resp - starts;
     catch ME
         warning('Error computing RT for %s: %s', taskType, ME.message);

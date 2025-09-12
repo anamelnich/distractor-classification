@@ -172,7 +172,7 @@ allLabels = rightDdata.labels;
 range = linspace(0.1,0.9,161);
 [x,y,t,~,opt] = perfcurve(allLabels, ...
     trainingData.posteriorsR, 1, 'Prior','uniform','TVals',range);
-thresholdR = findThreshold(y,x,t);
+thresholdR = findThreshold(y,x,t)
 
 % Compute confusion metrics
 disp(' ');
@@ -199,7 +199,7 @@ allLabels = leftDdata.labels;
 range = linspace(0.2,0.8,121);
 [x,y,t,~,opt] = perfcurve(allLabels, ...
     trainingData.posteriorsL, 1, 'Prior','uniform','TVals',range);
-thresholdL = findThreshold(y,x,t);
+thresholdL = t(x==opt(1) & y==opt(2));
 
 % Compute confusion metrics
 disp(' ');

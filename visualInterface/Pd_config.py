@@ -17,11 +17,8 @@ shape_definitions = [
     {"type": "diamond", "size_deg": (2, 2)},   # width x height
     {"type": "circle", "size_deg": 2},            # diameter
     {"type": "hexagon", "size_deg": (2, 2)},    # width x height
-    {"type": "square", "size_deg": (1.7, 1.7)},     # width x height
-    {"type": "diamond", "size_deg": (2, 2)},   # width x height
-    {"type": "hexagon", "size_deg": (2, 2)},   # width x height
-    {"type": "square", "size_deg": (1.7, 1.7)},    # width x height
-    {"type": "diamond", "size_deg": (2, 2)}   # width x height
+    {"type": "square", "size_deg": (1.7, 1.7)}     # width x height
+    
 ]
 set_size = len(shape_definitions)
 font = 'Calibri'

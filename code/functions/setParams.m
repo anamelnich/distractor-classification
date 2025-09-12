@@ -105,5 +105,6 @@ function params = setParams(header)
     params.classify.reduction.numfeats = 30;
     params.classify.reduction.pcaprct = 95;
     params.classify.type = 'linear'; % {'linear', 'diaglinear','SVM'}
+    params.classify.gamma = 0.05;
       
 end
