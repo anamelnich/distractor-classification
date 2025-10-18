@@ -1,7 +1,7 @@
-function plotERPpruned(origData, bestData, params)
+function plotERPpruned(origData, bestData, params,dSide)
 % plotERPpruned  Publication-quality grand-average diff waves with RT markers
 %
-%   plotERPpruned(origData, bestData, params)
+%   plotERPpruned(origData, bestData, params,dSide)
 %   Creates a two-panel figure (before & after pruning) with enhanced
 %   styling and mean Reaction Time (RT) vertical lines per condition.
 
@@ -16,7 +16,7 @@ figure('Color','w', 'Units','inches', 'Position',[1 1 4 6]);
 T = tiledlayout(2,1, 'TileSpacing','compact', 'Padding','compact');
 annotations = {'A: Before pruning', 'B: After pruning'};
 datasets = {origData, bestData};
-yL = [-10 10]; % consistent y-limits
+yL = [-10 15]; % consistent y-limits
 
 for p = 1:2
     ax = nexttile;
@@ -36,10 +36,16 @@ for p = 1:2
     % compute grand-averages
     avgDl = squeeze(mean(mean(D.data(:,lIdx,dTrials),2),3));
     avgDr = squeeze(mean(mean(D.data(:,rIdx,dTrials),2),3));
-    diffD  = avgDr - avgDl;
     avgNdl = squeeze(mean(mean(D.data(:,lIdx,ndTrials),2),3));
     avgNdr = squeeze(mean(mean(D.data(:,rIdx,ndTrials),2),3));
     diffND = avgNdr - avgNdl;
+    if dSide == "left"
+        diffD  = avgDr - avgDl;
+        diffND = avgNdr - avgNdl;
+    elseif dSide == "right"
+        diffD = avgDl - avgDr;
+        diffND = avgNdl - avgNdr;
+    end
 
     % gray shading
     patch([0.2 0.5 0.5 0.2], [yL(1) yL(1) yL(2) yL(2)], ...

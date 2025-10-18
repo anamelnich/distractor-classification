@@ -5,7 +5,9 @@ sudo chmod 777 /dev/ttyACM0
 read -p "subjectID: " subID
 read -p "[s] stroop, [e] EOG calibration, [t] training, or [d] decoding? " mode
 read -p "would you like to watch the tutorial? [y] or [n] " tutorial
-
+if [ "$mode"] != "e" ]; then
+	read -p "would you like to practice? [y] or [n] " practice
+fi
 
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )" #${BASH_SOURCE[0]} finds path to currently executing script and >/dev/null discards any output from cd
 
@@ -76,7 +78,11 @@ elif [ "$mode" = "t" ]
 	fi
 # Open GDF and log files
 datetime=$(date +%Y%m%d%H%M%S)
-basename=$dir/data/"e"$subID"_"$datetime"_training"
+if [ "$practice" = "y" ]; then
+	basename=$dir/data/"e"$subID"_"$datetime"_training_practice"
+else 
+	basename=$dir/data/"e"$subID"_"$datetime"_training"
+fi
 foldername=$dir/data/"e"$subID"_"$(date +%Y%m%d) 
 gdffilename=$basename".gdf"
 logfilename=$basename".log"
@@ -114,7 +120,7 @@ elif [ "$mode" = "d" ]
 		tutorial_again="y"
 		while [ "$tutorial_again" = "y" ]; do
 		sleep 3
-		vlc --play-and-exit --fullscreen "$dir/instructions/BCI_final.mp4"
+		vlc --play-and-exit --fullscreen --no-video-title-show "$dir/instructions/BCI_final.mp4"
 
 		read -p "would you like to watch the tutorial again? [y] or [n] " tutorial_again
 		done
@@ -127,7 +133,11 @@ read -p "margin (ambivalence band): " margin
 
 # Open GDF and log files
 datetime=$(date +%Y%m%d%H%M%S)
-basename=$dir/data/"e"$subID"_"$datetime"_decoding"
+if [ "$practice" = "y" ]; then
+	basename=$dir/data/"e"$subID"_"$datetime"_decoding_practice"
+else 
+	basename=$dir/data/"e"$subID"_"$datetime"_decoding"
+fi
 foldername=$dir/data/"e"$subID"_"$(date +%Y%m%d) 
 gdffilename=$basename".gdf"
 logfilename=$basename".log"
@@ -141,7 +151,7 @@ cl_rpc openxdf $gdffilename $logfilename ""
 # Run ndf file
 sleep 2
 
-gnome-terminal --title "Distractor Detection" -- bash -c "./matlabLauncher '$thrR' '$thrL' '$thrN' '$margin'; echo 'Press Enter to close...'; read"
+gnome-terminal --title "Distractor Detection" -- bash -c "./matlabLauncher '$subID' '$thrR' '$thrL' '$thrN' '$margin'; echo 'Press Enter to close...'; read"
 
 # Run python script
 sleep 20
@@ -176,7 +186,11 @@ elif [ "$mode" = "s" ]
 	fi
 # Open GDF and log files
 datetime=$(date +%Y%m%d%H%M%S)
-basename=$dir/data/"e"$subID"_"$datetime"_stroop"
+if [ "$practice" = "y" ]; then
+	basename=$dir/data/"e"$subID"_"$datetime"_stroop_practice"
+else 
+	basename=$dir/data/"e"$subID"_"$datetime"_stroop"
+fi
 foldername=$dir/data/"e"$subID"_"$(date +%Y%m%d) 
 gdffilename=$basename".gdf"
 logfilename=$basename".log"

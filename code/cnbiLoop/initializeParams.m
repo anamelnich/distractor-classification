@@ -11,7 +11,8 @@ stream.num_channels = length([decoder.eegChannels decoder.eogChannels]);
 stream.flags.initFilter = true;
 
 % max_sample = 1.0*stream.fsamp;
-max_sample = 1.5*stream.fsamp;
+% max_sample = 1.5*stream.fsamp;
+max_sample = 2*stream.fsamp;
 
 signalLength = ceil(max_sample/stream.frame_size)*stream.frame_size;
 singleClassificationRight(decoder, rand(signalLength, length(decoder.eegChannels)));

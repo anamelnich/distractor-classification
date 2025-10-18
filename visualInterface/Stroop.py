@@ -106,7 +106,8 @@ class StroopTask:
         neutral_words = ["COUCH", "DRESS", "BRIDGE", "DOG"]
         
         # 1. Create and shuffle trial types.
-        trial_types = ['congruent'] * 20 + ['incongruent'] * 20 + ['neutral'] * 20
+        # trial_types = ['congruent'] * 20 + ['incongruent'] * 20 + ['neutral'] * 20
+        trial_types = ['congruent'] * 30 + ['incongruent'] * 30
         random.shuffle(trial_types)
         
         # 2. Backtracking algorithm to assign ink colors.
@@ -157,7 +158,8 @@ class StroopTask:
         neutral_words = ["COUCH", "DRESS", "BRIDGE", "DOG"]
         
         # 1. Create and shuffle trial types.
-        trial_types = ['congruent'] * 8 + ['incongruent'] * 8 + ['neutral'] * 8
+        # trial_types = ['congruent'] * 8 + ['incongruent'] * 8 + ['neutral'] * 8
+        trial_types = ['congruent'] * 12 + ['incongruent'] * 12
         random.shuffle(trial_types)
         
         # 2. Backtracking algorithm to assign ink colors.
@@ -227,7 +229,7 @@ class StroopTask:
         recognizer.SetWords(True)
 
         self.display_fixation()
-        self.parallel.signal(6)
+        self.parallel.signal(4)
 
         pygame.time.wait(500)
         
@@ -239,11 +241,11 @@ class StroopTask:
             color = self.color_values[ink_color] if ink_color else WHITE
             self.display_stimulus(stimulus, color)
             if trial_type == 'congruent':
-                self.parallel.signal(10)
+                self.parallel.signal(8)
             elif trial_type == 'incongruent':
-                self.parallel.signal(20)
+                self.parallel.signal(32)
             elif trial_type == 'neutral':
-                self.parallel.signal(30)
+                self.parallel.signal(44)
         
         # Record stimulus onset and capture audio (recording for 2 seconds here)
         stimulus_time = time.time()
@@ -397,26 +399,22 @@ stroop_task = StroopTask()
 running = True
 while running:
     screen.fill(BLACK)
-    text = font.render("Select Part (1, 2, 3, or 4) or Q to quit", True, WHITE)
+    text = font.render("Practice [p], Begin Experiment [e], or Quit [q]", True, WHITE)
     screen.blit(text, text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)))
     pygame.display.flip()
     
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_1:
-                print("Starting Part 1")
-                stroop_task.run_part(1)
-            elif event.key == pygame.K_2:
-                print("Starting Part 2")
-                stroop_task.run_part(2)
-            elif event.key == pygame.K_3:
-                print("Starting Part 3")
-                stroop_task.run_part(3)
-            elif event.key == pygame.K_4:
-                print("Starting Part 4")
+            if event.key == pygame.K_p:
+                print("Starting Practice")
                 stroop_task.run_part(4)
+                running = False
+            elif event.key == pygame.K_e:
+                print("Starting Experiment")
+                stroop_task.run_part(3)
+                running = False
             elif event.key == pygame.K_q:
                 running = False
 
 pygame.quit()
-
+sys.exit(0)

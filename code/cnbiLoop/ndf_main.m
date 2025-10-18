@@ -1,4 +1,4 @@
-function ndf_main(thrR, thrL, thrN, margin)
+function ndf_main(subjectID,thrR, thrL, thrN, margin)
 
 global stream ndf ID ids idm
 
@@ -7,21 +7,34 @@ global stream ndf ID ids idm
 ndf_include(); %adds paths to CNBI toolkit and eegc3
 addpath(genpath('../decoder'));
 addpath(genpath('../functions'));
+folderPath = './online_info';
 
 skip_iterations = true;
 % Prepare and enter main loop
 try
-    load('./decoderR.mat');
-    load('./decoderL.mat');
-    load('./decoderN.mat');
+    load(sprintf('../decoder/decoders/e%d_decoderR.mat', subjectID));
+    load(sprintf('../decoder/decoders/e%d_decoderL.mat', subjectID));
+    load(sprintf('../decoder/decoders/e%d_decoderN.mat', subjectID));
 
     disp('Decoder Updated at');
     disp(decoderR.datetime);
+    
+    load(sprintf('./online_info/e%d_thrlog.mat',subjectID));
+    lastthr = thrLog(end);
+    lastthr.timestamp = datestr(now, 'yyyy-mm-dd HH:MM:SS');
 
-    if nargin>=1 && ~isempty(thrR),  decoderR.threshold  = thrR;  end
-    if nargin>=2 && ~isempty(thrL),  decoderL.threshold  = thrL;  end
-    if nargin>=3 && ~isempty(thrN),  decoderN.threshold  = thrN;  end
-    if nargin>=4 && ~isempty(margin), decoderR.thresholdMargin = margin; end
+    if nargin>=2 && ~isempty(thrR),  lastthr.thrR  = thrR;  end
+    if nargin>=3 && ~isempty(thrL),  lastthr.thrL  = thrL;  end
+    if nargin>=4 && ~isempty(thrN),  lastthr.thrN  = thrN;  end
+    if nargin>=5 && ~isempty(margin), lastthr.margin = margin; end
+    
+    timestamp = datestr(now, 'yyyymmdd');
+    op_path = fullfile(folderPath, sprintf('e%d_OnlinePosteriors_%s.mat', subjectID, timestamp));
+    if isfile(op_path)
+        load(op_path, 'OnlinePosteriors');
+    else
+        OnlinePosteriors = [];
+    end
 
     ndf_initialization(); %sets up ndf configuration, should automatically setup ndf with 64 ch based on incoming data
     decoderR = initializeParams(decoderR);
@@ -65,31 +78,31 @@ try
                 if (first_index >= 256) & (first_index <= 308) % 0.5 sec baseline, need 256 for decoder.baseline_idx to work correctly
                     label_value = stream.trigger(first_index);
                     fprintf('Label value at first_index (%d): %d\n', first_index, label_value);
+                    win = first_index + decoderR.params.epochSamples;
                     if label_value == 32
                         [ex_posterior, ~] = singleClassificationRight(decoderR,...
-                            stream.eeg((first_index - 256):end, decoderR.eegChannels));
-                        threshold = decoderR.threshold;
+                            stream.eeg(win, decoderR.eegChannels));
+                        threshold = lastthr.thrR;
                     elseif label_value == 44
                         [ex_posterior, ~] = singleClassificationRight(decoderL,...
-                            stream.eeg((first_index - 256):end, decoderL.eegChannels));
-                        threshold = decoderL.threshold;
+                            stream.eeg(win, decoderL.eegChannels));
+                        threshold = lastthr.thrL;
                     elseif label_value == 8
                         [ex_posterior, ~] = singleClassificationRight(decoderN,...
-                            stream.eeg((first_index - 256):end, decoderN.eegChannels));
-                        threshold = decoderN.threshold;
+                            stream.eeg(win, decoderN.eegChannels));
+                        threshold = lastthr.thrN;
                     end
                     disp(['Time Frame: ' num2str(time_frame, '%.2f') ' Posteriors: ' num2str(ex_posterior, ' %.2f')]);
-                    decoderR.onlinePosteriors = [decoderR.onlinePosteriors, ex_posterior];
                     stream.trigger(first_index) = 0;
 
                     diff = ex_posterior - threshold;
-                    if abs(diff) <= decoderR.thresholdMargin
+                    if abs(diff) <= lastthr.margin
                         code = 3;
                     else
                         code = (diff > 0) + 1; % diff>0 → code=2 or Pd, else (diff<0) → code=1 or no Pd
                     end
+                    OnlinePosteriors(end+1, :) = [ex_posterior; threshold;code];
                     sendTiD(code);
-                    % sendTiD(1 + (ex_posterior > decoder.decision_threshold)); % sends 1 if below threshold, 2 if above
                 end
             end
 
@@ -98,38 +111,33 @@ try
             end
         end
     end
-folderPath = './online_decoders';
-timestamp = datestr(now, 'yyyymmdd_HHMMSS');
-filenameR = fullfile(folderPath,['decoderR_' timestamp '.mat']);
-save(filenameR, 'decoderR');
-save('./decoderR.mat', 'decoderR');
 
-filenameL = fullfile(folderPath,['decoderL_' timestamp '.mat']);
-save(filenameL, 'decoderL');
-save('./decoderL.mat', 'decoderL');
 
-filenameN = fullfile(folderPath,['decoderN_' timestamp '.mat']);
-save(filenameN, 'decoderN');
-save('./decoderN.mat', 'decoderN');
+thrLog(end+1) = lastthr;
+save(sprintf('./online_info/e%d_thrlog.mat',subjectID),'thrLog');
 
-fprintf('Decoder ambivalence margin: %.4f\n', decoderR.thresholdMargin);
-fprintf('DecoderR threshold: %.4f\n', decoderR.threshold);
-fprintf('DecoderL threshold: %.4f\n', decoderL.threshold);
-fprintf('DecoderN threshold: %.4f\n\n', decoderN.threshold);
+save(op_path, 'OnlinePosteriors');
+
+fprintf('Decoder ambivalence margin: %.4f\n', lastthr.margin);
+fprintf('DecoderR threshold: %.4f\n', lastthr.thrR);
+fprintf('DecoderL threshold: %.4f\n', lastthr.thrL);
+fprintf('DecoderN threshold: %.4f\n\n', lastthr.thrN);
 
 % Save thresholds
-logFile = fullfile(folderPath, 'thresholds_log.txt');
+logname = sprintf('e%d_thresholds_log.txt',subjectID);
+logFile = fullfile(folderPath, logname);
 fid = fopen(logFile, 'a');  % append mode (creates file if it doesn't exist)
 if fid ~= -1
     fprintf(fid, 'Run timestamp: %s\n', datestr(now,'yyyy-mm-dd HH:MM:SS'));
-    fprintf(fid, 'Decoder ambivalence margin: %.4f\n', decoderR.thresholdMargin);
-    fprintf(fid, 'DecoderR threshold: %.4f\n', decoderR.threshold);
-    fprintf(fid, 'DecoderL threshold: %.4f\n', decoderL.threshold);
-    fprintf(fid, 'DecoderN threshold: %.4f\n\n', decoderN.threshold);
+    fprintf(fid, 'Decoder ambivalence margin: %.4f\n', lastthr.margin);
+    fprintf(fid, 'DecoderR threshold: %.4f\n', lastthr.thrR);
+    fprintf(fid, 'DecoderL threshold: %.4f\n', lastthr.thrL);
+    fprintf(fid, 'DecoderN threshold: %.4f\n\n', lastthr.thrN);
     fclose(fid);
 else
     warning('Could not open thresholds log file for writing.');
 end
+
 
 catch exception
     ndf_printexception(exception);

@@ -121,7 +121,7 @@ while trial_index < total_trials:
                      (x_center, y_center + fixation_size),
                      line_width)
     pygame.display.flip()
-    add_trigger(6)
+    add_trigger(4)
     pygame.time.delay(1000)
     
     # 2. Calibration dot appears for 1000 msec
@@ -133,13 +133,13 @@ while trial_index < total_trials:
     pygame.display.flip()
 
     if pos_index == 0:
-        add_trigger(100)
+        add_trigger(8)
     if pos_index == 1:
-        add_trigger(101)
+        add_trigger(32)
     if pos_index == 2:
-        add_trigger(102)
+        add_trigger(44)
     if pos_index == 3:
-        add_trigger(103) 
+        add_trigger(64) 
     pygame.time.delay(1000)
     
     trial_index += 1

@@ -86,7 +86,7 @@ end
 
 %% ================== Classification Setup ==================== %%
 nIter=20;
-
+% trainingData = combineEpochs({data.training1.epochs, data.decoding3.epochs});
 trainingData = combineEpochs({data.training1.epochs});
 rightMask = trainingData.labels ~=2 ; % distractor right trials --> left side decoder
 rightDdata.data = trainingData.data(:,:,rightMask);
@@ -122,7 +122,7 @@ h1 = gcf; set(h1,'PaperPositionMode','auto');
 print(h1, [base '_rightDistractor_pruning.pdf'], '-dpdf','-painters');
 
 % -------- 2) ERP: RIGHT distractor --------
-plotERPpruned(rightDdata, bestItrDataR, cfg);
+plotERPpruned(rightDdata, bestItrDataR, cfg,"right");
 h2 = gcf; set(h2,'PaperPositionMode','auto');
 print(h2, [base '_rightDistractor_ERP.pdf'], '-dpdf','-painters');
 
@@ -132,7 +132,7 @@ h3 = gcf; set(h3,'PaperPositionMode','auto');
 print(h3, [base '_leftDistractor_pruning.pdf'], '-dpdf','-painters');
 
 % -------- 4) ERP: LEFT distractor --------
-plotERPpruned(leftDdata, bestItrDataL, cfg);
+plotERPpruned(leftDdata, bestItrDataL, cfg,"left");
 h4 = gcf; set(h4,'PaperPositionMode','auto');
 print(h4, [base '_leftDistractor_ERP.pdf'], '-dpdf','-painters');
 
@@ -216,11 +216,16 @@ performanceL.tpr = tprL;
 performanceL.tnr = tnrL;
 performanceL.acc = accL;
 performanceL.auprc = aucLeft;
+
+%% Train final decoders
+[decoderR, ~] = computeDecoderRight(bestItrDataR.data, bestItrDataR.labels, cfg);    
+[decoderL, ~] = computeDecoderRight(bestItrDataL.data, bestItrDataL.labels, cfg);
+   
 %%
 decoderR.eegChannels = cfg.eegChannels; 
 decoderR.eogChannels = cfg.eogChannels;
 decoderR.spectralFilter = cfg.spectralFilter;
-decoderR.threshold = performanceR.thr;
+decoderR.threshold = 0.2;
 decoderR.thresholdMargin = 0.1;
 decoderR.performance = performanceR;
 decoderR.subjectID = subjectID;
@@ -235,7 +240,7 @@ disp(decoderR.datetime);
 decoderL.eegChannels = cfg.eegChannels; 
 decoderL.eogChannels = cfg.eogChannels;
 decoderL.spectralFilter = cfg.spectralFilter;
-decoderL.threshold = performanceL.thr;
+decoderL.threshold = 0.2;
 decoderL.thresholdMargin = 0.1;
 decoderL.performance = performanceL;
 decoderL.subjectID = subjectID;
@@ -251,15 +256,28 @@ if decoderR.performance.tnr > decoderL.performance.tnr
 else
     decoderN = decoderL;
 end
-
+decoderN.threshold = 0.8;
+%%
 save(sprintf('./decoders/%s_decoderR.mat', subjectID), 'decoderR');
-save('../cnbiLoop/decoderR.mat', 'decoderR');
+% save('../cnbiLoop/decoderR.mat', 'decoderR');
 
 save(sprintf('./decoders/%s_decoderL.mat', subjectID), 'decoderL');
-save('../cnbiLoop/decoderL.mat', 'decoderL');
+% save('../cnbiLoop/decoderL.mat', 'decoderL');
 
 save(sprintf('./decoders/%s_decoderN.mat', subjectID), 'decoderN');
-save('../cnbiLoop/decoderN.mat', 'decoderN');
+% save('../cnbiLoop/decoderN.mat', 'decoderN');
+
+%% make threshold logging struct
+thrLog = struct( ...
+    'subjectID',      subjectID, ...
+    'timestamp',      datestr(now,'yyyy-mm-dd HH:MM:SS'), ...
+    'margin'   ,      decoderR.thresholdMargin, ...
+    'thrR'     ,      decoderR.threshold, ...
+    'thrL'     ,      decoderL.threshold, ...
+    'thrN'     ,      decoderN.threshold ...
+);
+log_path = sprintf('../cnbiLoop/online_info/%s_thrlog.mat',subjectID);
+save(log_path, 'thrLog');
 
 %% ================== Riemannian Classifier ==================== %%
 % trainingData = combineEpochs({data.training1.epochs});

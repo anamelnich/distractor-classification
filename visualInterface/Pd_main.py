@@ -47,13 +47,13 @@ def trigger_listener(running_flag):
         msg = receiveTiD()
         if msg:
             if msg == 2:
-                print('Pd Detected')
+
                 correct_detected = True
             elif msg == 1:
-                print('No Pd Detected')
+
                 error_detected = True
             elif msg == 3:
-                print('Uncertain trial')
+
                 uncertainty_detected = True
         pygame.time.wait(20)
 
@@ -116,7 +116,7 @@ def run_training_mode(basename):
             waiting = True
             while waiting:
                 for ev in pygame.event.get():
-                    if ev.type == pygame.KEYDOWN:
+                    if ev.type == pygame.KEYDOWN or ev.type == pygame.MOUSEBUTTONDOWN:
                         waiting = False
         
         if trial_idx == config.break_trial:
@@ -137,7 +137,7 @@ def run_training_mode(basename):
             waiting = True
             while waiting:
                 for ev in pygame.event.get():
-                    if ev.type == pygame.KEYDOWN:
+                    if ev.type == pygame.KEYDOWN or ev.type == pygame.MOUSEBUTTONDOWN:
                         waiting = False
         
         task      = trial_type[trial_idx]
@@ -219,7 +219,7 @@ def run_training_mode(basename):
                         run       = False
                         break
 
-                    if ev.type == pygame.MOUSEBUTTONDOWN:
+                    if ev.type == pygame.MOUSEBUTTONDOWN and not resp_recorded:
                         trial_end    = True
                         resp_recorded = True
 
@@ -365,9 +365,28 @@ def run_decoding_mode(basename):
             waiting = True
             while waiting:
                 for ev in pygame.event.get():
-                    if ev.type == pygame.KEYDOWN:
+                    if ev.type == pygame.KEYDOWN or ev.type == pygame.MOUSEBUTTONDOWN:
                         waiting = False
+        if trial_idx == config.break_trial:
+            screen.fill((0,0,0))
+            text = font.render("Time for a break", True, (255,255,255))
+            rect = text.get_rect(center=(x_center,y_center))
+            screen.blit(text, rect)
+            pygame.display.flip()
+            pygame.time.delay(5000) 
 
+            screen.fill((0,0,0))
+            text = font.render("Press any key to start", True, (255,255,255))
+            rect = text.get_rect(center=(x_center,y_center))
+            screen.blit(text, rect)
+            pygame.display.flip()
+            # wait for a key press
+            pygame.event.clear()
+            waiting = True
+            while waiting:
+                for ev in pygame.event.get():
+                    if ev.type == pygame.KEYDOWN or ev.type == pygame.MOUSEBUTTONDOWN:
+                        waiting = False
         # unpack trial params
         task      = trial_type[trial_idx]
         tpos      = t_pos[trial_idx]
@@ -450,7 +469,7 @@ def run_decoding_mode(basename):
                         run       = False
                         break
 
-                    if ev.type == pygame.MOUSEBUTTONDOWN:
+                    if ev.type == pygame.MOUSEBUTTONDOWN and not resp_recorded:
                         # trial_end    = True
                         resp_recorded = True
                         wait = True
@@ -475,7 +494,7 @@ def run_decoding_mode(basename):
             if task == 1:
                 response_text = "Score: +2"; response_color = (0,255,0)
                 score+=2
-                icon = thumb_up; cmTP += 1; score += 2
+                icon = thumb_up; cmTP += 1; 
                 if d_side == 1:
                     cmTPr += 1
                 elif d_side == 2:
@@ -483,7 +502,7 @@ def run_decoding_mode(basename):
             else:
                 response_text = "Score: -1"; response_color = (255,0,0)
                 score-=1
-                icon = thumb_down; cmFP += 1; score -= 1
+                icon = thumb_down; cmFP += 1; 
             correct_detected = False
 
         elif error_detected:
@@ -491,7 +510,7 @@ def run_decoding_mode(basename):
             if task == 1:
                 response_text = "Score: -1"; response_color = (255,0,0)
                 score-=1
-                icon = thumb_down; cmFN += 1; score -= 2
+                icon = thumb_down; cmFN += 1; 
                 if d_side == 1:
                     cmFNr += 1
                 elif d_side == 2:
@@ -499,7 +518,7 @@ def run_decoding_mode(basename):
             else:
                 response_text = "Score: +1"; response_color = (0,255,0)
                 score+=1
-                icon = thumb_up; cmTN += 1; score += 1
+                icon = thumb_up; cmTN += 1; 
 
             error_detected = False
         elif uncertainty_detected:
@@ -540,25 +559,34 @@ def run_decoding_mode(basename):
     incorrect_pct = responses.count(2) / config.n_trials
     timeout_pct   = responses.count(3) / config.n_trials
 
+    total = cmTP + cmFP + cmFN + cmTN
+    accuracy = 100*(cmTP+cmTN)/total if total>0 else 0
+    TPR = 100*cmTP/(cmTP+cmFN) if (cmTP+cmFN)>0 else 0
+    TNR = 100*cmTN/(cmTN+cmFP) if (cmTN+cmFP)>0 else 0
+    prct_uncertain = 100*uncertain_count/config.n_trials
+    TPRr = 100*cmTPr/(cmTPr+cmFNr) if (cmTPr+cmFNr)>0 else 0
+    TPRl = 100*cmTPl/(cmTPl+cmFNl) if (cmTPl+cmFNl)>0 else 0
+
     screen.fill((0,0,0))
+    utils.show_final_screen(screen, x_center, y_center, accuracy, TPRr, TPRl, TNR, config)
+    # utils.show_final_screen(screen, x_center, y_center, 74, 65, 71, 71, config)
+    # big_font = pygame.font.SysFont(config.font, 80)   # size 80 for big
+    # score_surf = big_font.render(f"Score: {score} out of 90", True, (255,255,255))
+    # score_rect = score_surf.get_rect(center=(x_center, y_center - 40))
+    # screen.blit(score_surf, score_rect)
 
-    big_font = pygame.font.SysFont(config.font, 80)   # size 80 for big
-    score_surf = big_font.render(f"Score: {score} out of 90", True, (255,255,255))
-    score_rect = score_surf.get_rect(center=(x_center, y_center - 40))
-    screen.blit(score_surf, score_rect)
+    # small_font = pygame.font.SysFont(config.font, 32)  # size 32 for smaller text
+    # metrics_y = score_rect.bottom + 20                 # 20px below big score
 
-    small_font = pygame.font.SysFont(config.font, 32)  # size 32 for smaller text
-    metrics_y = score_rect.bottom + 20                 # 20px below big score
-
-    metrics_lines = [
-        f"Correct:   {correct_pct:.2f}",
-        f"Incorrect: {incorrect_pct:.2f}",
-        f"Timeout:   {timeout_pct:.2f}"
-    ]
-    for i, line in enumerate(metrics_lines):
-        m_surf = small_font.render(line, True, (200,200,200))
-        m_rect = m_surf.get_rect(center=(x_center, metrics_y + i*40))
-        screen.blit(m_surf, m_rect)
+    # metrics_lines = [
+    #     f"Correct:   {correct_pct:.2f}",
+    #     f"Incorrect: {incorrect_pct:.2f}",
+    #     f"Timeout:   {timeout_pct:.2f}"
+    # ]
+    # for i, line in enumerate(metrics_lines):
+    #     m_surf = small_font.render(line, True, (200,200,200))
+    #     m_rect = m_surf.get_rect(center=(x_center, metrics_y + i*40))
+    #     screen.blit(m_surf, m_rect)
 
     pygame.display.flip()
 
@@ -568,38 +596,22 @@ def run_decoding_mode(basename):
             if ev.type == pygame.KEYDOWN:
                 waiting = False
     send_tid(20)
-    total = cmTP + cmFP + cmFN + cmTN
+
     print("Confusion Matrix:")
     print("              Predicted")
     print("             0        1")
     print(f"Actual 0:   {cmTN:6d}   {cmFP:6d}")
     print(f"Actual 1:   {cmFN:6d}   {cmTP:6d}")
-    accuracy = 100*(cmTP+cmTN)/total if total>0 else 0
-    TPR = 100*cmTP/(cmTP+cmFN) if (cmTP+cmFN)>0 else 0
-    TNR = 100*cmTN/(cmTN+cmFP) if (cmTN+cmFP)>0 else 0
-    prct_uncertain = 100*uncertain_count/config.n_trials
+
     print(f"Accuracy: {accuracy:.2f}%")
     print(f"TPR:      {TPR:.2f}%")
     print(f"TNR:      {TNR:.2f}%")
     print(f"% uncertain: {prct_uncertain:.2f}")
 
-    TPRr = 100*cmTPr/(cmTPr+cmFNr) if (cmTPr+cmFNr)>0 else 0
-    TPRl = 100*cmTPl/(cmTPl+cmFNl) if (cmTPl+cmFNl)>0 else 0
     print(f"TPR right distractor:      {TPRr:.2f}%")
     print(f"TPR left distractor:       {TPRl:.2f}%")
 
-    if TPRr >= config.TPRr:
-        print("Increase decoderR threshold by 0.02")
-    if TPRr < config.TPRr:
-        print("Decrease decoderR threshold by 0.02")
-    if TPRl >= config.TPRl:
-        print("Increase decoderL threshold by 0.02")
-    if TPRl < config.TPRl:
-        print("Decrease decoderL threshold by 0.02")
-    if TNR >= config.TNR:
-        print("Decreaase decoderN threshold by 0.02")
-    if TNR < config.TNR:
-        print("Increaase decoderN threshold by 0.02")
+    utils.update_threshold_instructions(TPRr, TPRl, TNR, prct_uncertain, accuracy)
 
     listener_running[0] = False
     listener_thread.join()
@@ -666,7 +678,7 @@ def run_test_mode(basename):
             waiting = True
             while waiting:
                 for ev in pygame.event.get():
-                    if ev.type == pygame.KEYDOWN:
+                    if ev.type == pygame.KEYDOWN or ev.type == pygame.MOUSEBUTTONDOWN:
                         waiting = False
         
         if trial_idx == config.break_trial:
@@ -687,7 +699,7 @@ def run_test_mode(basename):
             waiting = True
             while waiting:
                 for ev in pygame.event.get():
-                    if ev.type == pygame.KEYDOWN:
+                    if ev.type == pygame.KEYDOWN or ev.type == pygame.MOUSEBUTTONDOWN:
                         waiting = False
         
         task      = trial_type[trial_idx]
@@ -767,7 +779,7 @@ def run_test_mode(basename):
                         run       = False
                         break
 
-                    if ev.type == pygame.MOUSEBUTTONDOWN:
+                    if ev.type == pygame.MOUSEBUTTONDOWN and not resp_recorded:
                         trial_end    = True
                         resp_recorded = True
 

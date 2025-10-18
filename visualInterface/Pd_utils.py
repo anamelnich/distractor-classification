@@ -280,3 +280,203 @@ def add_trigger(code, trial_index=None):
     logger = get_current_logger() 
     if logger is not None:
         logger.log_trigger(code, ts, trial_index)
+
+
+# ================== Threshold Utilities ==================
+
+def update_threshold_instructions(TPRr, TPRl, TNR, ambiv_rate, overall_perf):
+    """
+    Prints what to do with thresholds and margin according to the rules.
+    Inputs expected as percentages (e.g., 72.5 not 0.725)
+    """
+
+    print("\n--- Threshold Adjustment Recommendations ---")
+
+    # --- Ambivalence logic ---
+    if ambiv_rate > 20:
+        print("Decrease ambivalence margin by 0.01.")
+        print("⚠️  Do not make other thresholds harder; it's okay to make them easier.")
+    elif ambiv_rate < 10:
+        print("Increase ambivalence margin by 0.01.")
+        print("⚠️  Do not make other thresholds harder; it's okay to make them easier.")
+
+    # --- Distractor thresholds (TPRr, TPRl) ---
+    for name, TPR in [('thrR', TPRr), ('thrL', TPRl)]:
+        if TPR < 50:
+            print(f"Make D easier = Decrease {name} by 0.1.")
+        elif TPR < 55:
+            print(f"Make D easier = Decrease {name} by 0.05.")
+        elif TPR < 60:
+            print(f"Make D easier = Decrease {name} by 0.02.")
+        elif TPR > 70 and overall_perf > 75:
+            if TPR <= 90:
+                print(f"Make D harder = Increase {name} by 0.02.")
+            else:
+                print(f"Make D harder = Increase {name} by 0.05.")
+
+    # --- No-distractor threshold (TNR) ---
+    if TNR < 60:
+        print(f"Make ND easier = Increase thrN by 0.1.")
+    elif TNR < 65:
+        print(f"Make ND easier = Increase thrN by 0.05.")
+    elif TNR < 70:
+        print(f"Make ND easier = Increase thrN by 0.02.")
+    elif TNR > 80 and overall_perf > 75:
+        if TNR <= 90:
+            print(f"Make ND harder = Decrease thrN by 0.02.")
+        else:
+            print(f"Make ND harder = Decrease thrN by 0.05.")
+    print("\n⚠️  Reminder: Do not make thresholds easier past 1st online session.\n")
+
+def _rating_icon_path(value_pct: float, is_tnr: bool) -> str:
+
+    if is_tnr:
+        # TNR bins
+        if value_pct < 60:   name = "bad"
+        elif value_pct < 65: name = "slightly_bad"
+        elif value_pct < 70: name = "neutral"
+        elif value_pct < 80: name = "slightly_good"
+        else:                name = "good"
+    else:
+        # TPR bins (R & L)
+        if value_pct < 50:   name = "bad"
+        elif value_pct < 55: name = "slightly_bad"
+        elif value_pct < 60: name = "neutral"
+        elif value_pct <= 70: name = "slightly_good"
+        else:                 name = "good"
+    return f"./img/{name}.png"
+
+def _safe_load_image(path, size):
+    try:
+        return pygame.transform.smoothscale(
+            pygame.image.load(path).convert_alpha(), size)
+    except Exception:
+        # fallback: simple colored square if image missing
+        surf = pygame.Surface(size, pygame.SRCALPHA)
+        surf.fill((80,80,80,255))
+        pygame.draw.rect(surf, (160,160,160), surf.get_rect(), 4)
+        return surf
+
+def _animate_levelup(screen, x_center, y_center, config):
+    clock = pygame.time.Clock()
+    base_img = _safe_load_image("./img/levelup.png", (500, 500))
+    t = 0.0
+    running = True
+    while running:
+        for ev in pygame.event.get():
+            if ev.type == pygame.KEYDOWN or ev.type == pygame.MOUSEBUTTONDOWN:
+                running = False
+
+        # pulsate between 90% and 110% scale
+        scale = 1.0 + 0.1 * math.sin(t)
+        t += 0.08
+        size = (int(base_img.get_width() * scale), int(base_img.get_height() * scale))
+        img = pygame.transform.smoothscale(base_img, size)
+
+        screen.fill((0, 0, 0))
+        r = img.get_rect(center=(x_center, y_center))
+        screen.blit(img, r)
+        pygame.display.flip()
+        clock.tick(60)
+
+def show_final_screen(screen, x_center, y_center, accuracy_pct, TPRr, TPRl, TNR, config):
+
+    # If level up, just pulse and exit
+    if accuracy_pct >= 75.0:
+        _animate_levelup(screen, x_center, y_center, config)
+        return
+
+    # ----- Progress bar animation -----
+    clock = pygame.time.Clock()
+    pygame.font.init()
+    big_font   = pygame.font.SysFont(config.font, 64)
+    small_font = pygame.font.SysFont(config.font, 28)
+
+    # Bar geometry
+    bar_width  = 600
+    bar_height = 42
+    bar_rect   = pygame.Rect(0, 0, bar_width, bar_height)
+    bar_rect.center = (x_center, y_center - 30)
+
+    # Points mapping
+    points_target = int(max(0, min(100, math.floor(accuracy_pct * 100.0 / 75.0))))
+    # fill proportion is points/100
+    target_fill_px = int((points_target / 100.0) * bar_width)
+
+    # Preload emoji icons
+    emoji_size = getattr(config, "emoji_size", (200, 200))
+    icon_r = _safe_load_image(_rating_icon_path(TPRr, is_tnr=False), emoji_size)
+    icon_l = _safe_load_image(_rating_icon_path(TPRl, is_tnr=False), emoji_size)
+    icon_n = _safe_load_image(_rating_icon_path(TNR,  is_tnr=True ), emoji_size)
+
+    # Positions for emojis below bar
+    row_y = bar_rect.bottom + 150
+    gap   = 210
+    x_r   = x_center + gap
+    x_n   = x_center
+    x_l   = x_center - gap
+
+    # Animate fill up to target
+    fill_px = 0
+    running = True
+    filled_once = False
+
+    while running:
+        for ev in pygame.event.get():
+            if ev.type == pygame.KEYDOWN or ev.type == pygame.MOUSEBUTTONDOWN:
+                running = False
+
+        # animate towards target
+        if fill_px < target_fill_px:
+            fill_px = min(target_fill_px, fill_px + max(4, target_fill_px // 60))
+        else:
+            filled_once = True
+
+        screen.fill((0, 0, 0))
+
+        # Title / header (optional): show accuracy (hidden scale is 0..75%)
+        title = big_font.render("Run Summary", True, (255, 255, 255))
+        screen.blit(title, title.get_rect(center=(x_center, bar_rect.top - 60)))
+
+        # Draw bar outline
+        pygame.draw.rect(screen, (80, 80, 80), bar_rect, border_radius=8)
+        pygame.draw.rect(screen, (160, 160, 160), bar_rect, width=2, border_radius=8)
+
+        # Draw bar fill
+        fill_rect = pygame.Rect(bar_rect.left, bar_rect.top, fill_px, bar_rect.height)
+        pygame.draw.rect(screen, (0, 180, 90), fill_rect, border_radius=8)
+
+        # Points label bottom-right under the bar: "NN/100 points"
+        points_text = f"{points_target}/100 points"
+        pt_surf = small_font.render(points_text, True, (200, 200, 200))
+        pt_rect = pt_surf.get_rect()
+        pt_rect.top = bar_rect.bottom + 10
+        pt_rect.right = bar_rect.right
+        screen.blit(pt_surf, pt_rect)
+
+        # --- Emoji row ---
+        # Left Distractor
+        l_rect = icon_l.get_rect(center=(x_l, row_y))
+        screen.blit(icon_l, l_rect)
+        l_lbl = small_font.render(f"Left Distractor", True, (200,200,200))
+        screen.blit(l_lbl, l_lbl.get_rect(midtop=(x_l, l_rect.bottom + 6)))
+
+        # Right Distractor
+        r_rect = icon_r.get_rect(center=(x_r, row_y))
+        screen.blit(icon_r, r_rect)
+        r_lbl = small_font.render(f"Right Distractor", True, (200,200,200))
+        screen.blit(r_lbl, r_lbl.get_rect(midtop=(x_r, r_rect.bottom + 6)))
+
+        # No Distractor (TNR)
+        n_rect = icon_n.get_rect(center=(x_n, row_y))
+        screen.blit(icon_n, n_rect)
+        n_lbl = small_font.render(f"No Distractor", True, (200,200,200))
+        screen.blit(n_lbl, n_lbl.get_rect(midtop=(x_n, n_rect.bottom + 6)))
+
+
+        pygame.display.flip()
+        clock.tick(60)
+
+        # If bar reached target, we still keep the loop running until key press.
+        if filled_once:
+            pass

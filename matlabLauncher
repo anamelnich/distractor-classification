@@ -1,14 +1,22 @@
 #!/bin/bash
+set -euo pipefail
 cd ./code/cnbiLoop
 
-# Positional args: numbers or empty. Empty → pass [] so MATLAB keeps default.
-a1="${1}"; [ -z "$a1" ] && a1="[]"
-a2="${2}"; [ -z "$a2" ] && a2="[]"
-a3="${3}"; [ -z "$a3" ] && a3="[]"
-a4="${4}"; [ -z "$a4" ] && a4="[]"
+# --- capture & trim subID ---
+raw="${1-}"
+# remove spaces, tabs, newlines, and any stray \r from Windows-style input
+subID="${raw//[[:space:]]/}"
+subID="${subID//$'\r'/}"
 
-# (Optional) quick echo so you see what’s being sent
+
+# Positional args: numbers or empty. Empty → pass [] so MATLAB keeps default.
+a1="${2}"; [ -z "$a1" ] && a1="[]"
+a2="${3}"; [ -z "$a2" ] && a2="[]"
+a3="${4}"; [ -z "$a3" ] && a3="[]"
+a4="${5}"; [ -z "$a4" ] && a4="[]"
+
+
 echo "Launching ndf_main with: thrR=$a1 thrL=$a2 thrN=$a3 margin=$a4"
 
-matlab -nodesktop -nosplash -r "try, ndf_main($a1,$a2,$a3,$a4); catch ME, disp(getReport(ME)); end; quit"
+matlab -nodesktop -nosplash -r "try, ndf_main($subID,$a1,$a2,$a3,$a4); catch ME, disp(getReport(ME)); end; quit"
 
