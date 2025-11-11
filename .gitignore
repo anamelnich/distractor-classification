@@ -4,7 +4,5 @@ code/decoder/figures/*
 !code/decoder/figures/.gitkeep
 code/decoder/results/
 data/
-**/.DS_Store
-
 .DS_Store
-**/.DS_Store
+code/cnbiLoop/.DS_Store

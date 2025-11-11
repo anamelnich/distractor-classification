@@ -6,13 +6,13 @@ clearvars -except subjectID cfg;
 close all; rng('default');
 addpath(genpath('../functions'));
 
-%% ======================== Load Data ========================= %%
+%% Load Data 
 
 dataPath = [pwd '/../../data/'];
 data = loadData(dataPath, subjectID);
 delete sopen.mat
 
-%% ============== Set Params and Preprocess Data ============== %%
+%% Set Parameters andPreprocess
 cfg = setParams(data.training1.header);
 cfg.fsamp = data.training1.header.SampleRate;  
 
@@ -23,7 +23,7 @@ cfg.triggerChannel = 67;
 cfg.chanLabels = data.training1.header.Label;
 cfg.chanLabels(65:67)=[];
  
-%%
+
 fields = fieldnames(data);
 for i = 1:numel(fields)
     fname = fields{i};
@@ -39,7 +39,7 @@ end
 
 fields = fieldnames(data);
 
-%% =============== Remove Non-EEG Channels ==================== %%
+%% Remove Non-EEG Channels 
 % chanRemove = {'M1','M2','EOG','FP1','FP2','FPZ'};
 % removeIdx = find(ismember(cfg.chanLabels, chanRemove));
 % cfg.chanLabels(removeIdx) = [];
@@ -85,7 +85,7 @@ for i = 1:numel(fields)
 end
 
 %% ================== Classification Setup ==================== %%
-nIter=20;
+nIter=1;
 % trainingData = combineEpochs({data.training1.epochs, data.decoding3.epochs});
 trainingData = combineEpochs({data.training1.epochs});
 rightMask = trainingData.labels ~=2 ; % distractor right trials --> left side decoder

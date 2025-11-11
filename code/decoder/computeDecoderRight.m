@@ -157,7 +157,7 @@ if isequal(params.classify.normtype, 'minmax')
     normalize = @(x) (x - minVal) ./ (maxVal - minVal);
     classifierEpochs = normalize(classifierEpochs);
 elseif isequal(params.classify.normtype, 'zscore')
-    avg = mean(classifierEpochs,2);
+    avg = mean(classifierEpochs,2); % 30 x 1
     stdev = std(classifierEpochs,0,2);
     normalize = @(x)(x-avg)./stdev;
     classifierEpochs = normalize(classifierEpochs);

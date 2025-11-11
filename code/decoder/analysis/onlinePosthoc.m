@@ -1,13 +1,39 @@
-% T = readtable('./../../data/e17_decoders/e17_thresholds_table.csv');
-T = readtable('./../../data/e18_decoders/e18_thresholds_table.csv');
-%% load posteriors
-saved_decoder  = load('./../cnbiLoop/online_decoders/decoderR_e17_onlinePosteriors.mat'); %subject e17
-% saved_decoder  = load('./../cnbiLoop/online_decoders/decoderR_e18_onlinePosteriors.mat'); %subject e18
-posteriors_all = saved_decoder.decoderR.onlinePosteriors;
 
-%% remove the first run from subject 17
-posteriors_all = posteriors_all(541:end); %e17
-% posteriors_all(2041:2100)=[]; %e18
+%% Load thresholds
+t = load(sprintf('./../../cnbiLoop/online_info/%s_thrlog.mat',subjectID));
+thrLog = t.thrLog;
+
+vals = num2cell(1-[thrLog.thrN]);
+[thrLog.thrN] = vals{:};
+
+d = {thrLog.timestamp}';
+d = datetime(d,'InputFormat','yyyy-MM-dd HH:mm:ss');
+
+sessKey = dateshift(d,'start','day');
+G = findgroups(sessKey);
+
+% run index within each session (wrap vector outputs in cells, then concat)
+idxCells  = splitapply(@(x) {(1:numel(x))'}, d, G);
+runInSess = vertcat(idxCells{:});
+
+for i = 1:numel(thrLog)
+    thrLog(i).Session = G(i);
+    thrLog(i).Run     = runInSess(i);
+end
+
+%% Load posteriors
+% p1 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251008.mat',subjectID));
+% p2 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251009.mat',subjectID));
+% p3 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251010.mat',subjectID));
+% p4 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251011.mat',subjectID));
+% p5 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251013.mat',subjectID));
+p1 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251013.mat',subjectID));
+p2 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251014.mat',subjectID));
+p3 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251015.mat',subjectID));
+p4 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251016.mat',subjectID));
+p5 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251017.mat',subjectID));
+
+
 %%
 % === Config ===
 runsize   = 60;                 % trials per run (fixed)
@@ -143,44 +169,59 @@ for si = 1:numel(sessions)
     end
 end
 
-%% === Build concatenated thresholds/margin to match your accuracy timeline ===
-% T columns required: Session, Run, Margin, ThresholdR, ThresholdL, ThresholdN
+%% Thresholds for plotting
+S = thrLog; 
+Session = [S.Session]';
+Run     = [S.Run]';
+Margin = [S.margin]';
+ThrR   = [S.thrR]';
+ThrL   = [S.thrL]';
+ThrN   = [S.thrN]';
 
+T = table(Session, Run, Margin, ThrR, ThrL, ThrN, d, ...
+    'VariableNames', {'Session','Run','Margin','ThresholdR','ThresholdL','ThresholdN','Timestamp'});
+
+%% === Concatenate thresholds/margin to mirror concat_x timeline ===
 thrR_all = []; thrL_all = []; thrN_all = []; marg_all = [];
-x_thr    = [];                        % x that mirrors concat_x
+x_thr    = [];
 x_cursor = 0;
 sess_end_idx_thr = [];
 
 for si = 1:numel(sessions)
     s = sessions(si);
-    % Grab this session’s rows and sort by Run
-    rows = T(T.Session == s, :);
-    rows = sortrows(rows, 'Run');
-    if isempty(rows), continue; end
 
-    % If you computed accuracy runs earlier:
-    nruns_acc = numel(acc_runs{si});
+    % Take this session’s threshold rows, ordered by Run
+    rows = T(T.Session == s, :);
+    if isempty(rows), continue; end
+    rows = sortrows(rows, 'Run');
+
+    % How many runs are in accuracy for this session?
+    A = acc_runs{si};
+    if isempty(A), continue; end
+    nruns_acc = numel(A);
+
+    % If Run indices in T aren’t contiguous / start at 1, just take the first nruns in order
     if height(rows) ~= nruns_acc
-        warning('Session %d: thresholds (%d runs) != accuracy (%d runs). Using min length.', ...
-                 s, height(rows), nruns_acc);
+        warning('Session %d: thresholds (%d) != accuracy (%d). Using min length.', ...
+            s, height(rows), nruns_acc);
     end
     nruns = min(height(rows), nruns_acc);
+    rows  = rows(1:nruns, :);
 
-    % x segment for this session
+    % Build x segment and append
     x_seg = x_cursor + (1:nruns);
 
-    % Append thresholds/margin
-    thrR_all = [thrR_all; rows.ThresholdR(1:nruns)];
-    thrL_all = [thrL_all; rows.ThresholdL(1:nruns)];
-    thrN_all = [thrN_all; rows.ThresholdN(1:nruns)];
-    marg_all = [marg_all; rows.Margin(1:nruns)];
+    thrR_all = [thrR_all; rows.ThresholdR];
+    thrL_all = [thrL_all; rows.ThresholdL];
+    thrN_all = [thrN_all; rows.ThresholdN];
+    marg_all = [marg_all; rows.Margin];
     x_thr    = [x_thr, x_seg];
 
     sess_end_idx_thr(end+1) = x_seg(end);
 
-    % Insert a NaN gap (same as for accuracy) so lines break between sessions
+    % Insert visual gap (NaNs) between sessions, same as accuracy timeline
     if si < numel(sessions)
-        x_gap = x_seg(end) + (1:gapRuns);
+        x_gap    = x_seg(end) + (1:gapRuns);
         x_thr    = [x_thr, x_gap];
         thrR_all = [thrR_all; nan(gapRuns,1)];
         thrL_all = [thrL_all; nan(gapRuns,1)];
@@ -191,472 +232,295 @@ for si = 1:numel(sessions)
         x_cursor = x_seg(end);
     end
 end
+% Ensure per-session rows are strictly increasing in Run
+% and that we never exceed accuracy length
+assert(numel(x_thr) == numel(concat_x), 'x_thr and concat_x should align in length once both are built.');
+assert(isequal(size(thrR_all), size(concat_acc)), 'Lengths should match for plotting/overlay.');
 
-%% === Plot accuracy (left axis) + thresholds & margin (right axis) ===
-% ---------- Publication styling (do this once per session if you like) ----------
+%% Plot accuracy + thresholds
+
+% ---------- Global styling ----------
 set(groot,'defaultAxesFontName','Arial');
 set(groot,'defaultTextFontName','Arial');
-set(groot,'defaultAxesFontSize',9);           % 8–9 pt typical for Nature
-set(groot,'defaultTextInterpreter','none');   % keep plain text labels
-set(groot,'defaultLegendBox','off');          % no legend box
-set(groot,'defaultLineLineWidth',1.2);
-set(groot,'defaultAxesLineWidth',0.75);
+set(groot,'defaultAxesFontSize',14);        % larger for readability (Nature ~8 pt after scaling)
+set(groot,'defaultTextInterpreter','none');
+set(groot,'defaultLineLineWidth',1.6);
+set(groot,'defaultAxesLineWidth',1);
 set(groot,'defaultAxesTickDir','out');
-set(groot,'defaultAxesBox','off');            % outer box off for cleaner look
+set(groot,'defaultAxesBox','off');
 
-% ---------- Color palette (colorblind-friendly-ish) ----------
+% ---------- Color palette ----------
 colAcc = [0.15 0.4 0.8];   % blue
-colR   = [0.8 0.25 0.1];   % red
-colL   = [0.0 0.6 0.5];    % teal/green
-colN   = [0.6 0.4 0.8];    % purple
-colM   = [0.55 0.55 0.55]; % gray (margin)
+colR   = [0.85 0.2 0.1];   % red
+colL   = [0.0 0.6 0.45];   % teal
+colN   = [0.6 0.4 0.85];   % purple
+colM   = [0.35 0.35 0.35]; % gray (margin)
 
-% Reduce marker clutter: mark every ~5th point (adjust as needed)
+% ---------- Marker subsampling ----------
 if ~isempty(concat_x)
-    stepIdx = max(1, floor(numel(concat_x)/50));   % ≤ ~50 markers total
+    stepIdx  = max(1, floor(numel(concat_x)/60));
     mkIdxAcc = 1:stepIdx:numel(concat_x);
 else
     mkIdxAcc = [];
 end
 if ~isempty(x_thr)
-    stepIdxT = max(1, floor(numel(x_thr)/50));
+    stepIdxT = max(1, floor(numel(x_thr)/60));
     mkIdxThr = 1:stepIdxT:numel(x_thr);
 else
     mkIdxThr = [];
 end
 
 % ---------- Figure ----------
-fig = figure('Color','w','Units','inches','Position',[1 1 5.2 3.1]); % Nature-ish aspect
+fig = figure('Color','w','Units','inches','Position',[1 1 8.5 5.0]); % full-width Nature figure
+tiledlayout(1,1,'Padding','tight','TileSpacing','compact');
+nexttile;
 
-% Left axis: Accuracy
+% ---------- Left axis: Accuracy ----------
 yyaxis left
 hAcc = plot(concat_x, concat_acc, '-o', ...
-    'Color', colAcc, 'MarkerSize', 3.5, 'MarkerIndices', mkIdxAcc, ...
-    'LineWidth', 1.6, 'DisplayName','Accuracy');
+    'Color', colAcc, 'MarkerSize', 4.5, 'MarkerIndices', mkIdxAcc, ...
+    'LineWidth', 2.0, 'DisplayName','Accuracy');
 hold on;
 
-% draw chance AFTER legend is set to AutoUpdate off (so it won't get included)
-yl = [0.1 0.9];
-ylim(yl);
-yChance = yline(0.5,'--','Theoretical Chance','Alpha',0.5,'FontSize',9);
+yl_left = [0 1];
+ylim(yl_left);
+xlabel('Run index','FontSize',15,'FontWeight','bold');
+ylabel('Accuracy','FontSize',15,'FontWeight','bold');
+title('Run-wise Accuracy and Adaptive Thresholds','FontSize',17,'FontWeight','bold');
+grid on;
+
+yChance = yline(0.5,'--','FontSize',12,'Color',[0.5 0.5 0.5],'Alpha',0.7);
 yChance.LabelVerticalAlignment = 'bottom';
-yChance.Color = [0.4 0.4 0.4];
 
-grid on; box off;
-xlabel('Run index');
-ylabel('Accuracy');
-title('Accuracy & Thresholds per Run (Ambivalent ignored)');
-draw_session_dividers(sess_end_idx, sessions, yl(2)+0.005, false);
+draw_session_dividers(sess_end_idx, sessions, yl_left(2)+0.01, false);
 
-% Right axis: thresholds + margin
+% ---------- Right axis: Thresholds ----------
 yyaxis right
 hold on;
+hR = plot(x_thr, thrR_all, '-',  'Color', colR, 'LineWidth', 2.0, ...
+    'Marker','o', 'MarkerIndices', mkIdxThr, 'MarkerSize', 4, 'DisplayName','ThresholdR');
+hL = plot(x_thr, thrL_all, '--', 'Color', colL, 'LineWidth', 2.0, ...
+    'Marker','s', 'MarkerIndices', mkIdxThr, 'MarkerSize', 4, 'DisplayName','ThresholdL');
+hN = plot(x_thr, thrN_all, ':',  'Color', colN, 'LineWidth', 2.2, ...
+    'Marker','^', 'MarkerIndices', mkIdxThr, 'MarkerSize', 4, 'DisplayName','ThresholdN');
 
-hR = plot(x_thr, thrR_all, '-',  ...
-    'Color', colR, 'LineWidth', 1.4, 'DisplayName','ThresholdR', ...
-    'Marker','o', 'MarkerIndices', mkIdxThr, 'MarkerSize', 3);
-hL = plot(x_thr, thrL_all, '--', ...
-    'Color', colL, 'LineWidth', 1.4, 'DisplayName','ThresholdL', ...
-    'Marker','s', 'MarkerIndices', mkIdxThr, 'MarkerSize', 3);
-hN = plot(x_thr, thrN_all, ':',  ...
-    'Color', colN, 'LineWidth', 1.6, 'DisplayName','ThresholdN', ...
-    'Marker','^', 'MarkerIndices', mkIdxThr, 'MarkerSize', 3);
-
-% Optional margin line (uncomment if you want it in this plot)
-plotMargin = false;   % <--- set true to include Margin
+plotMargin = true; % include margin in Nature plots
 if plotMargin
-    hM = plot(x_thr, marg_all, '-.', ...
-        'Color', colM, 'LineWidth', 1.2, 'DisplayName','Margin', ...
-        'Marker','d', 'MarkerIndices', mkIdxThr, 'MarkerSize', 3);
+    hM = plot(x_thr, marg_all, '-.', 'Color', colM, 'LineWidth', 1.8, ...
+        'Marker','d', 'MarkerIndices', mkIdxThr, 'MarkerSize', 4, 'DisplayName','Margin');
 end
 
-% Set thresholds y-limits (0–1 makes sense; or tighten to data with padding)
-ylim([0.1 0.9]);
-ylabel('Thresholds');
+ylim([0 1]);
+ylabel('Threshold / Margin','FontSize',15,'FontWeight','bold');
 
-% ---------- Legend (robust) ----------
-% Turn off auto-update so later lines (e.g., xline/yline) won't hijack the legend
+% ---------- Legend ----------
 lgdHandles = [hAcc, hR, hL, hN];
 lgdLabels  = {'Accuracy','ThresholdR','ThresholdL','ThresholdN'};
 if plotMargin
     lgdHandles = [lgdHandles, hM];
-    lgdLabels  = [lgdLabels,  {'Margin'}];
+    lgdLabels  = [lgdLabels, {'Margin'}];
 end
+lgd = legend(lgdHandles, lgdLabels, 'Location','northeastoutside');
+set(lgd,'Box','off','FontSize',13,'AutoUpdate','off');
 
-lgd = legend(lgdHandles, lgdLabels, 'Location','eastoutside');
-set(lgd,'AutoUpdate','off');   % freeze contents
+% ---------- Final adjustments ----------
+xlim([min(concat_x) max(concat_x)]);
+ax = gca;
+ax.YAxis(1).Color = colAcc; % left axis color
+ax.YAxis(2).Color = [0.25 0.25 0.25]; % right axis color
 
-% Tighten layout: slightly shrink right margin so legend fits
-outerpos = fig.OuterPosition;
+% Optional annotation or panel letter
+annotation('textbox',[0.01 0.95 0.05 0.05],'String','a',...
+    'FontWeight','bold','FontSize',16,'EdgeColor','none');
 
-%% === 2) TPR & TNR (continuous) ===
-figure('Color','w','Units','inches','Position',[1 1 10 4]);
-h1 = plot(concat_x, concat_tpr, '-o', 'LineWidth', 1.6, 'MarkerSize', 4, ...
-          'DisplayName','TPR (distractor)');
-hold on;
-h2 = plot(concat_x, concat_tnr, '-o', 'LineWidth', 1.6, 'MarkerSize', 4, ...
-          'DisplayName','TNR (no-distractor)');
-yline(0.5,'--','Chance','Alpha',0.5);
-grid on; box on;
-xlabel('Run index (continuous across sessions)');
-ylabel('Rate');
-title('TPR & TNR per Run (Ambivalent trials ignored)');
-legend([h1 h2],'Location','best','AutoUpdate','off');  
-ylim([0.35 1]);
-draw_session_dividers(sess_end_idx, sessions, 1.02, showLabels);
+%% %%%%%%%%%%%%%%%%%%%%%%% Compute AUC and AUPRC (per-session) %%%%%%%%%%%%%%%%%%%%%%
 
-%% === 3) Ambivalent counts (continuous) ===
-% --- Precompute & sanity checks ---
-yAmb = (concat_amb ./ 60) * 100;     % ambivalent trials (%)
-marg_all = marg_all * 100;           % convert from decimal to percent
+% Inputs you already have:
+% sessions, sessFields, data.(sf).beh.trial_type, data.(sf).beh.BCI_output (optional), runsize
 
-mkIdxThr = mkIdxThr(mkIdxThr>=1 & mkIdxThr<=numel(x_thr));
+% ---- Load posteriors per session ----
+Pcell = {
+    p1.OnlinePosteriors
+    p2.OnlinePosteriors
+    p3.OnlinePosteriors
+    p4.OnlinePosteriors
+    p5.OnlinePosteriors
+};
+assert(numel(Pcell) == numel(sessions), 'Number of posterior files must match number of sessions.');
 
-%% --- Figure & plotting ---
-figure('Color','w','Units','inches','Position',[1 1 7 4]);
-hold on; grid on; box on;
-
-p1 = plot(concat_x, yAmb, '-^', ...
-    'LineWidth', 1.8, 'MarkerSize', 4, ...
-    'DisplayName', 'Ambivalent (%)');
-
-p2 = plot(x_thr, marg_all, '-o', ...
-    'Color', colR, 'LineWidth', 1.4, ...
-    'MarkerIndices', mkIdxThr, 'MarkerSize', 3, ...
-    'DisplayName', 'ThresholdR (%)');
-
-xlabel('Run index (continuous across sessions)');
-ylabel('% Ambivalent trials');
-title('Ambivalent Trials per Run');
-
-ylim([0, 50]);
-xlim([min([concat_x(:); x_thr(:)]) max([concat_x(:); x_thr(:)])]);
-% 
-set(gca, 'Layer','top', 'LineWidth',1, ...
-    'FontName','Arial', 'FontSize',15);
-
-legend('Location','best','AutoUpdate','off'); legend boxoff;
-
-% Draw session dividers above highest point
-draw_session_dividers(sess_end_idx, sessions, 50, showLabels);
-
-hold off;
-
-
-
-%% === 4) Combined: Acc/TPR/TNR (left) + Amb (right) ===
-figure('Color','w','Units','inches','Position',[1 1 11 4.8]);
-yyaxis left;
-plot(concat_x, concat_acc, '-', 'LineWidth', 1.8, 'DisplayName','Accuracy'); hold on;
-plot(concat_x, concat_tpr, '--', 'LineWidth', 1.5, 'DisplayName','TPR');
-plot(concat_x, concat_tnr, ':',  'LineWidth', 1.5, 'DisplayName','TNR');
-yline(0.5,'--','Chance','Alpha',0.4);
-ylabel('Accuracy / TPR / TNR'); ylim([0 1]); grid on; box on;
-
-yyaxis right;
-plot(concat_x, concat_amb, '-.', 'LineWidth', 1.5, 'DisplayName','Ambivalent count');
-ylabel('# Ambivalent');  ylim([0 40]);
-
-xlabel('Run index (continuous across sessions)');
-title('All Metrics per Run (Ambivalent ignored in rates)');
-legend('Location','bestoutside', 'AutoUpdate','off');
-
-% Optional: nicer xticks (every 5 runs, for example)
-% xt = get(gca,'XLim');
-% set(gca,'XTick',unique([1, sess_end_idx, round(linspace(xt(1), xt(2), 12))]));
-%% === Build per-session summaries (means & std across runs) ===
-
-% ---- Compute per-session stats ----
-[MTLR, SDTLR] = sess_stats_TPR_LR(sessions, tpr_runs, T);   % (K x 3): TPR, ThrL, ThrR
-[MTN,  SDTN]  = sess_stats_TNR_N(sessions, tnr_runs, T);    % (K x 2): TNR, ThrN
-
-% ---- Styling defaults (Nature-ish) ----
-set(groot,'defaultAxesFontName','Arial');
-set(groot,'defaultTextFontName','Arial');
-set(groot,'defaultAxesFontSize',9);
-set(groot,'defaultLegendBox','off');
-set(groot,'defaultAxesTickDir','out');
-set(groot,'defaultAxesLineWidth',0.75);
-set(groot,'defaultAxesBox','off');
-
-% ---- FIGURE A: TPR + ThrL + ThrR ----
-colsA = [ 0.80 0.25 0.10;   % TPR (red)
-          0.00 0.60 0.50;   % ThrL (teal)
-          0.60 0.40 0.80 ]; % ThrR (purple)
-
-figA = figure('Color','w','Units','inches','Position',[1 1 5.6 3.3]);
-bA = bar(MTLR, 'grouped'); hold on;
-for k = 1:numel(bA)
-    bA(k).FaceColor = colsA(k,:); bA(k).EdgeColor = 'none';
-end
-
-% error bars
-ng = size(MTLR,1); nb = size(MTLR,2);
-xEndsA = nan(ng, nb);
-for k = 1:nb, xEndsA(:,k) = bA(k).XEndPoints; end
-for k = 1:nb
-    errorbar(xEndsA(:,k), MTLR(:,k), SDTLR(:,k), 'k', 'linestyle','none', ...
-        'LineWidth',0.8, 'CapSize',6);
-end
-
-xticks(1:numel(sessions));
-xticklabels(arrayfun(@(s)sprintf('S%d',s), sessions,'UniformOutput',false));
-ylabel('Percent (%)');
-title('Per-session averages: TPR & Thresholds L/R');
-ylim([15, 90]); grid on; box off;
-legend({'TPR','ThresholdL','ThresholdR'}, 'Location','eastoutside');
-
-% export (optional)
-% exportgraphics(gca,'session_bars_TPR_LR.pdf','ContentType','vector');
-
-% ---- FIGURE B: TNR + ThrN ----
-colsB = [ 0.00 0.60 0.50;   % TNR (teal)
-          0.90 0.60 0.00 ]; % ThrN (orange)
-
-figB = figure('Color','w','Units','inches','Position',[1 1 4.8 3.3]);
-bB = bar(MTN, 'grouped'); hold on;
-for k = 1:numel(bB)
-    bB(k).FaceColor = colsB(k,:); bB(k).EdgeColor = 'none';
-end
-
-ng = size(MTN,1); nb = size(MTN,2);
-xEndsB = nan(ng, nb);
-for k = 1:nb, xEndsB(:,k) = bB(k).XEndPoints; end
-for k = 1:nb
-    errorbar(xEndsB(:,k), MTN(:,k), SDTN(:,k), 'k', 'linestyle','none', ...
-        'LineWidth',0.8, 'CapSize',6);
-end
-
-xticks(1:numel(sessions));
-xticklabels(arrayfun(@(s)sprintf('S%d',s), sessions,'UniformOutput',false));
-ylabel('Percent (%)');
-title('Per-session averages: TNR & Threshold N');
-ylim([50, 90]); grid on; box off;
-legend({'TNR','ThresholdN'}, 'Location','eastoutside');
-
-
-%% %%%%%%%%%%%%%%%%%%%%%%% Compute AUC and AUPRC %%%%%%%%%%%%%%%%%%%%%%
-% ========= Inputs assumed =========
-% sessions      : cellstr of session names (e.g., {'S1','S2','S3','S4','S5'})
-% sessFields    : cellstr mirroring 'sessions' used to index 'data'
-% data.(sf).beh : struct with fields: trial_type (0/1), BCI_output (0/1/3)
-% runsize       : integer (60), only used for alignment checks
-% posteriors_all: 1xN or Nx1 posterior scores for class 1, concatenated across sessions
-%                 in the same trial order as data (session by session)
-
-if size(posteriors_all,1)==1, posteriors_all = posteriors_all(:); end
-
-% ========= Compute per-session AUROC & AUPRC =========
 auc_session   = nan(numel(sessions),1);
 auprc_session = nan(numel(sessions),1);
-pr_chance     = nan(numel(sessions),1);   % baseline = positive prevalence after filtering
-n_eff_trials  = zeros(numel(sessions),1); % usable (non-ambivalent) trials per session
+pr_chance     = nan(numel(sessions),1);
+n_eff_trials  = zeros(numel(sessions),1);
 
-cursor = 0;
 for si = 1:numel(sessions)
     sf = sessFields{si};
     if ~isfield(data, sf) || ~isfield(data.(sf),'beh')
-        warning('Missing %s.beh; skipping session.', sf);
+        warning('Missing %s.beh; skipping session %d.', sf, si);
         continue;
     end
     beh = data.(sf).beh;
-    if ~isfield(beh,'trial_type') || ~isfield(beh,'BCI_output')
-        warning('%s.beh missing trial_type or BCI_output; skipping.', sf);
+    if ~isfield(beh,'trial_type')
+        warning('%s.beh missing trial_type; skipping.', sf);
         continue;
     end
 
-    y_true = beh.trial_type(:);       % 1=distractor, 0=no-distractor
-    y_out  = beh.BCI_output(:);       % 0/1, 3=ambivalent
-    ntr    = numel(y_true);
+    y_true = beh.trial_type(:);   % 1=distractor, 0=no-distractor
+    ntr_beh = numel(y_true);
 
-    % ---- OPTION A (single concatenated posterior vector) ----
-    idx_sess = cursor + (1:ntr);
-    if idx_sess(end) > numel(posteriors_all)
-        error('posteriors_all too short for session %d.', si);
+    % --- From OnlinePosteriors: [score, threshold_used, output_code] ---
+    P = Pcell{si};
+    if size(P,2) < 3
+        error('OnlinePosteriors for session %d must be n×3 (score, threshold, output_code).', si);
     end
-    score_sess = double(posteriors_all(idx_sess));
-    cursor = idx_sess(end);
+    score_sess = double(P(:,1));   % posterior for class 1
+    y_out_raw  = double(P(:,3));   % 1=distr, 2=no-distr, 3=ambiv
+    % Map 2->0 to match your labeling
+    y_out = y_out_raw;
+    y_out(y_out == 2) = 0;
 
-    % ---- OPTION B (per-session posterior field) ----
-    % If you store posteriors per session instead, comment OPTION A above
-    % and use this (adjust the fieldname as needed):
-    % if isfield(beh,'posterior')
-    %     score_sess = double(beh.posterior(:));
-    %     if numel(score_sess) ~= ntr
-    %         error('%s: posterior length (%d) != trials (%d).', sf, numel(score_sess), ntr);
-    %     end
-    % else
-    %     warning('%s.beh missing posterior; skipping.', sf);
-    %     continue;
-    % end
+    % --- Length alignment (warn & truncate to common length) ---
+    ntr_post = numel(score_sess);
+    nmatch   = min(ntr_beh, ntr_post);
+    if nmatch ~= ntr_beh || nmatch ~= ntr_post
+        warning('Session %d: behavior trials (%d) vs posteriors (%d). Using first %d.', si, ntr_beh, ntr_post, nmatch);
+    end
+    y_true = y_true(1:nmatch);
+    score_sess = score_sess(1:nmatch);
+    y_out = y_out(1:nmatch);
 
-    % Remove ambivalent
+    % --- Remove ambivalent (3) for metrics ---
     keep = (y_out ~= 3);
     yk   = y_true(keep);
     sk   = score_sess(keep);
     n_eff_trials(si) = numel(yk);
 
     if numel(yk) == 0 || numel(unique(yk)) < 2
-        % no usable trials or only one class → undefined curves
         auc_session(si)   = NaN;
         auprc_session(si) = NaN;
         pr_chance(si)     = NaN;
         continue;
     end
 
-    % Baseline for PR curve = prevalence of positives
+    % PR baseline = prevalence of positives
     pr_chance(si) = mean(yk == 1);
 
-    % AUROC
-    auc_session(si) = local_safe_auc(yk, sk);
-
-    % AUPRC (Recall-Precision)
+    % AUROC & AUPRC (uses Statistics and Machine Learning Toolbox)
+    auc_session(si)   = local_safe_auc(yk, sk);
     auprc_session(si) = local_safe_auprc(yk, sk);
 end
 
-% Optional: sanity check full consumption of the posterior vector
-if cursor ~= numel(posteriors_all)
-    warning('posteriors_all has %d entries; consumed %d across sessions.', numel(posteriors_all), cursor);
-end
-
 %% ========= Plot: AUROC (left) & AUPRC (right) over sessions =========
-% ---------- Publication styling ----------
+
+% Publication styling
 set(groot,'defaultAxesFontName','Arial');
 set(groot,'defaultTextFontName','Arial');
-set(groot,'defaultAxesFontSize',9);
+set(groot,'defaultAxesFontSize',14);
 set(groot,'defaultTextInterpreter','none');
-set(groot,'defaultLegendBox','off');
-set(groot,'defaultLineLineWidth',1.2);
-set(groot,'defaultAxesLineWidth',0.75);
+set(groot,'defaultLineLineWidth',1.6);
+set(groot,'defaultAxesLineWidth',1);
 set(groot,'defaultAxesTickDir','out');
 set(groot,'defaultAxesBox','off');
 
-% Colors
 colAUC   = [0.15 0.40 0.80];  % blue
-colAUPRC = [0.80 0.25 0.10];  % red
-colPRC0  = [0.40 0.40 0.40];  % gray (chance PR per session markers/line)
+colAUPRC = [0.85 0.20 0.10];  % red
+colPRC0  = [0.40 0.40 0.40];  % gray
 
 xS = 1:numel(sessions);
 
-figS = figure('Color','w','Units','inches','Position',[1 1 5.2 3.1]);
-yyaxis left
-p1 = plot(xS, auc_session, '-o', 'Color', colAUC, 'MarkerSize', 5, 'LineWidth', 1.6, 'DisplayName','AUROC');
-hold on;
-yline(0.5,'--','ROC Chance','Alpha',0.5,'Color',[0.4 0.4 0.4]);
-ylim([0.45 0.65]); % tweak if needed
-ylabel('AUROC');
+figS = figure('Color','w','Units','inches','Position',[1 1 7.5 4.5]); % larger canvas
+tiledlayout(1,1,'Padding','tight','TileSpacing','compact');
+nexttile;
 
-yyaxis right
-p2 = plot(xS, auprc_session, '-s', 'Color', colAUPRC, 'MarkerSize', 5, 'LineWidth', 1.6, 'DisplayName','AUPRC');
+% Left axis: AUROC
+yyaxis left
+p1 = plot(xS, auc_session, '-o', 'Color', colAUC, 'MarkerSize', 5.5, 'LineWidth', 2.0, 'DisplayName','AUROC');
 hold on;
-% AUPRC chance varies by prevalence; show as markers (or a line if you prefer)
-p3 = plot(xS, pr_chance, ':^', 'Color', colPRC0, 'MarkerSize', 4, 'LineWidth', 1.2, 'DisplayName','PR Chance (prevalence)');
-ylim([0.45 0.65]);
-ylabel('AUPRC');
+yline(0.5,'--','ROC Chance','Alpha',0.7,'Color',[0.5 0.5 0.5],'FontSize',12);
+ylim([max(0.45, min([auc_session; 0.5]) - 0.03), min(1, max([auc_session; 0.5]) + 0.03)]);
+ylabel('AUROC','FontSize',15,'FontWeight','bold');
+
+% Right axis: AUPRC (+ prevalence markers)
+yyaxis right
+p2 = plot(xS, auprc_session, '-s', 'Color', colAUPRC, 'MarkerSize', 5.5, 'LineWidth', 2.0, 'DisplayName','AUPRC'); hold on;
+p3 = plot(xS, pr_chance, ':^', 'Color', colPRC0, 'MarkerSize', 5, 'LineWidth', 1.8, 'DisplayName','PR chance (prevalence)');
+ylim([max(0.45, min([auprc_session; pr_chance]) - 0.03), min(1, max([auprc_session; pr_chance]) + 0.03)]);
+ylabel('AUPRC','FontSize',15,'FontWeight','bold');
 
 grid on; box off;
 xticks(xS);
-xticks(1:numel(sessions));
 
+% Session labels
 if iscell(sessions)
-    % cell array: ensure each item is char
-    if all(cellfun(@(x) ischar(x) || (isstring(x) && isscalar(x)), sessions))
-        xlbl = cellfun(@char, sessions, 'UniformOutput', false);
-    else
-        xlbl = arrayfun(@(k) sprintf('S%d', k), 1:numel(sessions), 'UniformOutput', false);
-    end
-elseif isstring(sessions) && isvector(sessions)
-    xlbl = cellstr(sessions(:)).';          % convert string array -> cellstr row
-elseif isnumeric(sessions) && isvector(sessions)
+    xlbl = cellfun(@char, sessions, 'UniformOutput', false);
+elseif isstring(sessions)
+    xlbl = cellstr(sessions(:)).';
+elseif isnumeric(sessions)
     xlbl = arrayfun(@(v) sprintf('S%d', v), sessions(:).', 'UniformOutput', false);
 else
-    % fallback: S1..Sn
     xlbl = arrayfun(@(k) sprintf('S%d', k), 1:numel(sessions), 'UniformOutput', false);
 end
-
 xticklabels(xlbl);
-xlabel('Session');
-title('Per-Session AUROC & AUPRC (Ambivalent ignored)');
+xlabel('Session','FontSize',15,'FontWeight','bold');
+title('Per-Session AUROC & AUPRC (Ambivalent ignored)','FontSize',17,'FontWeight','bold');
 
-lgd = legend([p1 p2 p3], {'AUROC','AUPRC','PR Chance'}, 'Location','eastoutside');
-set(lgd,'AutoUpdate','off');
+lgd = legend([p1 p2 p3], {'AUROC','AUPRC','PR Chance'}, 'Location','northeastoutside');
+set(lgd,'Box','off','AutoUpdate','off','FontSize',13);
 
-%% ========= Helper functions =========
-function A = local_safe_auc(y, s)
+%% ERP waveform pre vs post BCI
+calibData = safeCombine(data, 'training1');
+finalData   = safeCombine(data, 'training2');
+on1Data   = safeCombine(data, 'decoding1');
+on2Data   = safeCombine(data, 'decoding2');
+on3Data   = safeCombine(data, 'decoding3');
+on4Data   = safeCombine(data, 'decoding4');
+on5Data   = safeCombine(data, 'decoding5');
+load(sprintf('./../decoders/%s_decoderL.mat',subjectID));
+load(sprintf('./../decoders/%s_decoderR.mat',subjectID));
+panelNames = {'Pre BCI','Post BCI'};
+%%
+plotERPOffvsOnlineAllD_xDAWN(calibData, finalData, cfg, decoderL, decoderR, panelNames,1)
+
+%% %% Helper functions 
+function out = safeCombine(data, topField)
+% out = [] unless data.(topField).epochs exists and is nonempty
+    out = [];
+    if isfield(data, topField) && isfield(data.(topField), 'epochs') ...
+            && ~isempty(data.(topField).epochs)
+        out = combineEpochs({data.(topField).epochs});
+    end
+end
+function auc = local_safe_auc(y, s)
+    % y in {0,1}, s real-valued scores
     try
-        [~,~,~,A] = perfcurve(y, s, 1);
+        [~,~,~,auc] = perfcurve(y, s, 1);
     catch
-        A = NaN;
+        y  = double(y); s = double(s);
+        [~,~,~,auc] = perfcurve(y, s, 1);
     end
 end
 
-function AP = local_safe_auprc(y, s)
+function auprc = local_safe_auprc(y, s)
     try
-        [~,~,~,AP] = perfcurve(y, s, 1, 'xCrit','reca','yCrit','prec');
+        [~,~,~,auprc] = perfcurve(y, s, 1, 'xCrit','reca','yCrit','prec');
     catch
-        AP = NaN;
+        y  = double(y); s = double(s);
+        [~,~,~,auprc] = perfcurve(y, s, 1, 'xCrit','reca','yCrit','prec');
     end
 end
 
-
-%% Helper: draw session dividers + labels
-function draw_session_dividers(sess_end_idx, sessions, ytop, showLabels)
-    for i = 1:numel(sess_end_idx)-1
-        xline(sess_end_idx(i) + 0.5, ':', 'Color', [0.5 0.5 0.5], 'LineWidth', 1);
-    end
-    if showLabels
-        mids = round((sess_end_idx - [0, sess_end_idx(1:end-1)]) / 2) + [1, sess_end_idx(1:end-1)];
-        for i = 1:numel(mids)
-            text(mids(i), ytop, sprintf('S%d', i), ...
-                 'HorizontalAlignment','center','VerticalAlignment','bottom', ...
-                 'FontWeight','bold','Color',[0.2 0.2 0.2]);
+function draw_session_dividers(sess_end_idx, sessions, yTop, showLabels)
+% Draw vertical dashed lines after each session and optional labels.
+    if isempty(sess_end_idx), return; end
+    hold on;
+    for k = 1:numel(sess_end_idx)-1
+        x = sess_end_idx(k) + 0.5; % between runs
+        xline(x,':','Color',[0.6 0.6 0.6],'LineWidth',0.75,'Alpha',0.7);
+        if showLabels
+            text(x, yTop, sprintf('S%d', sessions(k+1)), ...
+                'HorizontalAlignment','center','VerticalAlignment','bottom', ...
+                'Color',[0.3 0.3 0.3],'FontSize',8);
         end
     end
 end
 
-%% ---- Helper to compute per-session mean/std with safe alignment ----
-function [M, SD] = sess_stats_TPR_LR(sessions, tpr_runs, T)
-    K = numel(sessions);
-    M  = nan(K,3);  % [TPR, ThrL, ThrR]
-    SD = nan(K,3);
-    for si = 1:K
-        s = sessions(si);
-        tpr = tpr_runs{si}(:);
-        rows = T(T.Session==s, :); rows = sortrows(rows,'Run');
-        ThrL = rows.ThresholdL(:);
-        ThrR = rows.ThresholdR(:);
-
-        nmin = min([numel(tpr), numel(ThrL), numel(ThrR)]);
-        tpr  = tpr(1:nmin);
-        ThrL = ThrL(1:nmin);
-        ThrR = ThrR(1:nmin);
-
-        % convert to %
-        tprP  = 100*tpr;  ThrLP = 100*ThrL;  ThrRP = 100*ThrR;
-
-        M(si,:)  = [mean(tprP,'omitnan'),  mean(ThrLP,'omitnan'),  mean(ThrRP,'omitnan')];
-        SD(si,:) = [std(tprP,'omitnan'),   std(ThrLP,'omitnan'),   std(ThrRP,'omitnan')];
-    end
-end
-
-function [M, SD] = sess_stats_TNR_N(sessions, tnr_runs, T)
-    K = numel(sessions);
-    M  = nan(K,2);  % [TNR, ThrN]
-    SD = nan(K,2);
-    for si = 1:K
-        s = sessions(si);
-        tnr = tnr_runs{si}(:);
-        rows = T(T.Session==s, :); rows = sortrows(rows,'Run');
-        ThrN = rows.ThresholdN(:);
-
-        nmin = min([numel(tnr), numel(ThrN)]);
-        tnr  = tnr(1:nmin);
-        ThrN = ThrN(1:nmin);
-
-        % convert to %
-        tnrP  = 100*tnr;  ThrNP = 100*ThrN;
-
-        M(si,:)  = [mean(tnrP,'omitnan'),  mean(ThrNP,'omitnan')];
-        SD(si,:) = [std(tnrP,'omitnan'),   std(ThrNP,'omitnan')];
-    end
-end
