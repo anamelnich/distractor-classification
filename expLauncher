@@ -3,6 +3,7 @@ sudo modprobe -r lp
 sudo chmod 777 /dev/parport0
 sudo chmod 777 /dev/ttyACM0
 read -p "subjectID: " subID
+read -p "group: " group
 read -p "[s] stroop, [e] EOG calibration, [t] training, or [d] decoding? " mode
 read -p "would you like to watch the tutorial? [y] or [n] " tutorial
 if [ "$mode"] != "e" ]; then
@@ -120,8 +121,13 @@ elif [ "$mode" = "d" ]
 		tutorial_again="y"
 		while [ "$tutorial_again" = "y" ]; do
 		sleep 3
-		vlc --play-and-exit --fullscreen --no-video-title-show "$dir/instructions/BCI_final.mp4"
-
+		if [ "$group" = "51" ]
+			then
+			vlc --play-and-exit --fullscreen --no-video-title-show "$dir/instructions/BCI_final_51.mp4"
+		elif [ "$group" = "93" ]
+			then
+			vlc --play-and-exit --fullscreen --no-video-title-show "$dir/instructions/BCI_final_93.mp4"	
+		fi
 		read -p "would you like to watch the tutorial again? [y] or [n] " tutorial_again
 		done
 	fi
@@ -155,7 +161,14 @@ gnome-terminal --title "Distractor Detection" -- bash -c "./matlabLauncher '$sub
 
 # Run python script
 sleep 20
-python3 ./visualInterface/Pd_main.py "$basename" "decode"
+if [ "$group" = "51" ]
+	then
+	python3 ./visualInterface/Pd_main.py "$basename" "decode"
+elif [ "$group" = "93" ]
+	then
+	python3 ./visualInterface/Pd_main.py "$basename" "decode_ctrl"
+fi
+
 
 # Close the GDF file
 sleep 3

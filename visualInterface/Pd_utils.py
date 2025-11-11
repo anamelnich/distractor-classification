@@ -275,7 +275,7 @@ def init_hardware_trigger():
 
 def add_trigger(code, trial_index=None):
     ts = pygame.time.get_ticks()
-    if config.MODE in ('train','decode'):
+    if config.MODE in ('train','decode','decode_ctrl'):
         HWTrigger.signal(code)
     logger = get_current_logger() 
     if logger is not None:
@@ -326,7 +326,6 @@ def update_threshold_instructions(TPRr, TPRl, TNR, ambiv_rate, overall_perf):
             print(f"Make ND harder = Decrease thrN by 0.02.")
         else:
             print(f"Make ND harder = Decrease thrN by 0.05.")
-    print("\n⚠️  Reminder: Do not make thresholds easier past 1st online session.\n")
 
 def _rating_icon_path(value_pct: float, is_tnr: bool) -> str:
 
