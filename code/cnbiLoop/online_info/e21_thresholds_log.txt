@@ -1,0 +1,246 @@
+Run timestamp: 2025-10-20 13:26:50
+Decoder ambivalence margin: 0.1000
+DecoderR threshold: 0.2000
+DecoderL threshold: 0.2000
+DecoderN threshold: 0.8000
+
+Run timestamp: 2025-10-20 13:32:32
+Decoder ambivalence margin: 0.1000
+DecoderR threshold: 0.2000
+DecoderL threshold: 0.2000
+DecoderN threshold: 0.8000
+
+Run timestamp: 2025-10-20 13:38:30
+Decoder ambivalence margin: 0.1000
+DecoderR threshold: 0.2000
+DecoderL threshold: 0.2200
+DecoderN threshold: 0.7500
+
+Run timestamp: 2025-10-20 13:45:01
+Decoder ambivalence margin: 0.1000
+DecoderR threshold: 0.2200
+DecoderL threshold: 0.2400
+DecoderN threshold: 0.7300
+
+Run timestamp: 2025-10-20 13:50:57
+Decoder ambivalence margin: 0.1000
+DecoderR threshold: 0.2200
+DecoderL threshold: 0.2400
+DecoderN threshold: 0.7300
+
+Run timestamp: 2025-10-20 13:56:39
+Decoder ambivalence margin: 0.0900
+DecoderR threshold: 0.2200
+DecoderL threshold: 0.2400
+DecoderN threshold: 0.7300
+
+Run timestamp: 2025-10-20 14:02:44
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.2200
+DecoderL threshold: 0.2400
+DecoderN threshold: 0.7300
+
+Run timestamp: 2025-10-23 14:39:41
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.2200
+DecoderL threshold: 0.2400
+DecoderN threshold: 0.7300
+
+Run timestamp: 2025-10-23 14:45:11
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.2200
+DecoderL threshold: 0.2400
+DecoderN threshold: 0.7300
+
+Run timestamp: 2025-10-23 14:51:11
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.2700
+DecoderL threshold: 0.2600
+DecoderN threshold: 0.6800
+
+Run timestamp: 2025-10-23 14:57:18
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.3200
+DecoderL threshold: 0.2800
+DecoderN threshold: 0.6600
+
+Run timestamp: 2025-10-23 15:03:11
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.3200
+DecoderL threshold: 0.2600
+DecoderN threshold: 0.6600
+
+Run timestamp: 2025-10-23 15:08:50
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.3400
+DecoderL threshold: 0.2800
+DecoderN threshold: 0.6400
+
+Run timestamp: 2025-10-23 15:14:44
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.3600
+DecoderL threshold: 0.3300
+DecoderN threshold: 0.5900
+
+Run timestamp: 2025-10-23 15:20:25
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.3800
+DecoderL threshold: 0.3300
+DecoderN threshold: 0.5700
+
+Run timestamp: 2025-10-23 15:25:51
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.3800
+DecoderL threshold: 0.3300
+DecoderN threshold: 0.6200
+
+Run timestamp: 2025-10-27 11:56:24
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.3800
+DecoderL threshold: 0.3300
+DecoderN threshold: 0.6200
+
+Run timestamp: 2025-10-27 12:01:56
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.3800
+DecoderL threshold: 0.3300
+DecoderN threshold: 0.6200
+
+Run timestamp: 2025-10-27 12:07:37
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4000
+DecoderL threshold: 0.3500
+DecoderN threshold: 0.6000
+
+Run timestamp: 2025-10-27 12:13:20
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4000
+DecoderL threshold: 0.3500
+DecoderN threshold: 0.6000
+
+Run timestamp: 2025-10-27 12:19:01
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4200
+DecoderL threshold: 0.4000
+DecoderN threshold: 0.6000
+
+Run timestamp: 2025-10-27 12:24:58
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4700
+DecoderL threshold: 0.4200
+DecoderN threshold: 0.6200
+
+Run timestamp: 2025-10-27 12:31:00
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4900
+DecoderL threshold: 0.4700
+DecoderN threshold: 0.6000
+
+Run timestamp: 2025-10-27 12:36:41
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4400
+DecoderL threshold: 0.4200
+DecoderN threshold: 0.6000
+
+Run timestamp: 2025-10-27 12:42:33
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4900
+DecoderL threshold: 0.4400
+DecoderN threshold: 0.6000
+
+Run timestamp: 2025-10-29 11:31:43
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4900
+DecoderL threshold: 0.4400
+DecoderN threshold: 0.6000
+
+Run timestamp: 2025-10-29 11:37:17
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.4900
+DecoderL threshold: 0.4400
+DecoderN threshold: 0.6000
+
+Run timestamp: 2025-10-29 11:43:04
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.5400
+DecoderL threshold: 0.4600
+DecoderN threshold: 0.6500
+
+Run timestamp: 2025-10-29 11:48:53
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.5400
+DecoderL threshold: 0.3600
+DecoderN threshold: 0.6700
+
+Run timestamp: 2025-10-29 11:54:31
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.5400
+DecoderL threshold: 0.3600
+DecoderN threshold: 0.7200
+
+Run timestamp: 2025-10-29 12:00:24
+Decoder ambivalence margin: 0.0800
+DecoderR threshold: 0.5600
+DecoderL threshold: 0.3800
+DecoderN threshold: 0.7200
+
+Run timestamp: 2025-10-29 12:07:20
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.5600
+DecoderL threshold: 0.3800
+DecoderN threshold: 0.7200
+
+Run timestamp: 2025-10-29 12:13:15
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.5800
+DecoderL threshold: 0.4300
+DecoderN threshold: 0.7200
+
+Run timestamp: 2025-10-29 12:18:54
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.6000
+DecoderL threshold: 0.4300
+DecoderN threshold: 0.7000
+
+Run timestamp: 2025-11-03 12:18:48
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.6000
+DecoderL threshold: 0.4300
+DecoderN threshold: 0.7000
+
+Run timestamp: 2025-11-03 12:24:19
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.6000
+DecoderL threshold: 0.4300
+DecoderN threshold: 0.7000
+
+Run timestamp: 2025-11-03 12:30:00
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.6000
+DecoderL threshold: 0.3300
+DecoderN threshold: 0.8000
+
+Run timestamp: 2025-11-03 12:35:29
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.6000
+DecoderL threshold: 0.3800
+DecoderN threshold: 0.8000
+
+Run timestamp: 2025-11-03 12:41:09
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.6200
+DecoderL threshold: 0.3600
+DecoderN threshold: 0.7500
+
+Run timestamp: 2025-11-03 12:46:51
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.6200
+DecoderL threshold: 0.3800
+DecoderN threshold: 0.7300
+
+Run timestamp: 2025-11-03 12:52:31
+Decoder ambivalence margin: 0.0700
+DecoderR threshold: 0.6400
+DecoderL threshold: 0.4000
+DecoderN threshold: 0.7100
+
