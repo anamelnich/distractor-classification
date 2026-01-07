@@ -85,7 +85,7 @@ for i = 1:numel(fields)
 end
 
 %% ================== Classification Setup ==================== %%
-nIter=1;
+nIter=20;
 % trainingData = combineEpochs({data.training1.epochs, data.decoding3.epochs});
 trainingData = combineEpochs({data.training1.epochs});
 rightMask = trainingData.labels ~=2 ; % distractor right trials --> left side decoder
@@ -278,6 +278,10 @@ thrLog = struct( ...
 );
 log_path = sprintf('../cnbiLoop/online_info/%s_thrlog.mat',subjectID);
 save(log_path, 'thrLog');
+
+%% Save pruned data
+save(sprintf('./data/%s_prunedR.mat', subjectID), 'bestItrDataR');
+save(sprintf('./data/%s_prunedL.mat', subjectID), 'bestItrDataL');
 
 %% ================== Riemannian Classifier ==================== %%
 % trainingData = combineEpochs({data.training1.epochs});
