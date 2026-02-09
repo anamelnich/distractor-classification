@@ -59,7 +59,15 @@ def trigger_listener(running_flag):
 
 def run_training_mode(basename):
     print("Running in TRAINING mode...")
-
+    # --- Controller init ---
+    pygame.joystick.init()
+    js = None
+    if pygame.joystick.get_count() > 0:
+        js = pygame.joystick.Joystick(0)
+        js.init()
+        print("Joystick connected:", js.get_name())
+    else:
+        print("No joystick detected")
     disp = utils.init_display()
     screen        = disp.screen
     pixels_per_cm = disp.pixels_per_cm
@@ -96,6 +104,8 @@ def run_training_mode(basename):
     responses = []
     trial_idx = 0
     run            = True
+
+    pygame.mouse.set_visible(False)
 
     while run and trial_idx < config.n_trials:
         # global quit (ESC)
@@ -213,25 +223,61 @@ def run_training_mode(basename):
 
                 pygame.display.flip()
 
+
                 for ev in pygame.event.get():
                     if ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
                         trial_end = True
                         run       = False
                         break
 
-                    if ev.type == pygame.MOUSEBUTTONDOWN and not resp_recorded:
-                        trial_end    = True
-                        resp_recorded = True
+                    if not resp_recorded:
 
-                        if ev.button == 1:
-                            is_correct = (dot_correct == 0)
-                        elif ev.button == 3:
-                            is_correct = (dot_correct == 1)
+                        recorded_this_event = False
 
-                        response     = 1 if is_correct else 2
-                        trigger_code = 11 if is_correct else 12
-                        utils.add_trigger(64, trial_idx)
-                        break
+                        # Mouse clicks
+                        if ev.type == pygame.MOUSEBUTTONDOWN:
+                            if ev.button == 1:          # left click
+                                trial_end = True
+                                resp_recorded = True
+                                is_correct = (dot_correct == 0)
+                                recorded_this_event = True
+
+                            elif ev.button == 3:        # right click
+                                trial_end = True
+                                resp_recorded = True
+                                is_correct = (dot_correct == 1)
+                                recorded_this_event = True
+
+                            else:
+                                continue  # ignore other mouse buttons
+
+                        # Controller bumpers
+                        elif ev.type == pygame.JOYBUTTONDOWN:
+                            # print("BUTTON", ev.button)  # debug if you want
+                            if ev.button == 4:          # LB
+                                trial_end = True
+                                resp_recorded = True
+                                is_correct = (dot_correct == 0)
+                                recorded_this_event = True
+
+                            elif ev.button == 5:        # RB
+                                trial_end = True
+                                resp_recorded = True
+                                is_correct = (dot_correct == 1)
+                                recorded_this_event = True
+
+                            else:
+                                continue  # ignore other controller buttons
+
+                        else:
+                            continue  # not an input event we care about
+
+                        # Only compute response if we actually recorded one
+                        if recorded_this_event:
+                            response     = 1 if is_correct else 2
+                            trigger_code = 11 if is_correct else 12
+                            utils.add_trigger(64, trial_idx)
+                            break
         screen.fill((0, 0, 0))
         if response == 1:
             response_text = 'Correct'
@@ -280,7 +326,15 @@ def run_training_mode(basename):
 
 def run_decoding_mode(basename):
     print("Running in DECODING mode...")
-
+    # --- Controller init ---
+    pygame.joystick.init()
+    js = None
+    if pygame.joystick.get_count() > 0:
+        js = pygame.joystick.Joystick(0)
+        js.init()
+        print("Joystick connected:", js.get_name())
+    else:
+        print("No joystick detected")
     # 1) exactly same display + font + shape setup as training
     disp = utils.init_display()
     screen        = disp.screen
@@ -346,7 +400,7 @@ def run_decoding_mode(basename):
     BCI_output = []
     trial_idx = 0
     run       = True
-
+    pygame.mouse.set_visible(False)
     # 5) main trial loop
     while run and trial_idx < config.n_trials:
         # ESC to abort & notify BCI
@@ -463,28 +517,65 @@ def run_decoding_mode(basename):
 
                     utils.draw_dot(screen, x, y, shape_width, dot_side)
                 pygame.display.flip()
+
                 for ev in pygame.event.get():
                     if ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
                         trial_end = True
                         run       = False
                         break
 
-                    if ev.type == pygame.MOUSEBUTTONDOWN and not resp_recorded:
-                        # trial_end    = True
-                        resp_recorded = True
-                        wait = True
+                    if not resp_recorded:
 
-                        if ev.button == 1:
-                            is_correct = (dot_correct == 0)
-                        elif ev.button == 3:
-                            is_correct = (dot_correct == 1)
+                        recorded_this_event = False
 
-                        response     = 1 if is_correct else 2
-                        trigger_code = 11 if is_correct else 12
-                        utils.add_trigger(64, trial_idx)
-                        screen.fill((0, 0, 0))
-                        pygame.display.update()
-                        # break
+                        # Mouse clicks
+                        if ev.type == pygame.MOUSEBUTTONDOWN:
+                            if ev.button == 1:          # left click
+                                # trial_end = True
+                                resp_recorded = True
+                                wait=True
+                                is_correct = (dot_correct == 0)
+                                recorded_this_event = True
+
+                            elif ev.button == 3:        # right click
+                                # trial_end = True
+                                resp_recorded = True
+                                wait=True
+                                is_correct = (dot_correct == 1)
+                                recorded_this_event = True
+
+                            else:
+                                continue  # ignore other mouse buttons
+
+                        # Controller bumpers
+                        elif ev.type == pygame.JOYBUTTONDOWN:
+                            # print("BUTTON", ev.button)  # debug if you want
+                            if ev.button == 4:          # LB
+                                # trial_end = True
+                                resp_recorded = True
+                                wait=True
+                                is_correct = (dot_correct == 0)
+                                recorded_this_event = True
+
+                            elif ev.button == 5:        # RB
+                                # trial_end = True
+                                resp_recorded = True
+                                wait=True
+                                is_correct = (dot_correct == 1)
+                                recorded_this_event = True
+
+                            else:
+                                continue  # ignore other controller buttons
+
+                        else:
+                            continue  # not an input event we care about
+
+                        # Only compute response if we actually recorded one
+                        if recorded_this_event:
+                            response     = 1 if is_correct else 2
+                            trigger_code = 11 if is_correct else 12
+                            utils.add_trigger(64, trial_idx)
+                            # break
 
         # 6) BCI‐driven feedback
         screen.fill((0,0,0))
@@ -623,7 +714,15 @@ def run_decoding_mode(basename):
 
 def run_decoding_ctrl_mode(basename):
     print("Running in DECODING mode...")
-
+    # --- Controller init ---
+    pygame.joystick.init()
+    js = None
+    if pygame.joystick.get_count() > 0:
+        js = pygame.joystick.Joystick(0)
+        js.init()
+        print("Joystick connected:", js.get_name())
+    else:
+        print("No joystick detected")
     # 1) exactly same display + font + shape setup as training
     disp = utils.init_display()
     screen        = disp.screen
@@ -689,6 +788,7 @@ def run_decoding_ctrl_mode(basename):
     BCI_output = []
     trial_idx = 0
     run       = True
+    pygame.mouse.set_visible(False)
 
     # 5) main trial loop
     while run and trial_idx < config.n_trials:
@@ -812,22 +912,58 @@ def run_decoding_ctrl_mode(basename):
                         run       = False
                         break
 
-                    if ev.type == pygame.MOUSEBUTTONDOWN and not resp_recorded:
-                        # trial_end    = True
-                        resp_recorded = True
-                        wait = True
+                    if not resp_recorded:
 
-                        if ev.button == 1:
-                            is_correct = (dot_correct == 0)
-                        elif ev.button == 3:
-                            is_correct = (dot_correct == 1)
+                        recorded_this_event = False
 
-                        response     = 1 if is_correct else 2
-                        trigger_code = 11 if is_correct else 12
-                        utils.add_trigger(64, trial_idx)
-                        screen.fill((0, 0, 0))
-                        pygame.display.update()
-                        # break
+                        # Mouse clicks
+                        if ev.type == pygame.MOUSEBUTTONDOWN:
+                            if ev.button == 1:          # left click
+                                # trial_end = True
+                                resp_recorded = True
+                                wait=True
+                                is_correct = (dot_correct == 0)
+                                recorded_this_event = True
+
+                            elif ev.button == 3:        # right click
+                                # trial_end = True
+                                resp_recorded = True
+                                wait=True
+                                is_correct = (dot_correct == 1)
+                                recorded_this_event = True
+
+                            else:
+                                continue  # ignore other mouse buttons
+
+                        # Controller bumpers
+                        elif ev.type == pygame.JOYBUTTONDOWN:
+                            # print("BUTTON", ev.button)  # debug if you want
+                            if ev.button == 4:          # LB
+                                # trial_end = True
+                                resp_recorded = True
+                                wait=True
+                                is_correct = (dot_correct == 0)
+                                recorded_this_event = True
+
+                            elif ev.button == 5:        # RB
+                                # trial_end = True
+                                resp_recorded = True
+                                wait=True
+                                is_correct = (dot_correct == 1)
+                                recorded_this_event = True
+
+                            else:
+                                continue  # ignore other controller buttons
+
+                        else:
+                            continue  # not an input event we care about
+
+                        # Only compute response if we actually recorded one
+                        if recorded_this_event:
+                            response     = 1 if is_correct else 2
+                            trigger_code = 11 if is_correct else 12
+                            utils.add_trigger(64, trial_idx)
+                            # break
 
         # 6) BCI‐driven feedback
         screen.fill((0,0,0))
@@ -913,7 +1049,15 @@ def run_decoding_ctrl_mode(basename):
     screen.fill((0,0,0))
     # utils.show_final_screen(screen, x_center, y_center, accuracy, TPRr, TPRl, TNR, config)
 
-
+    screen.fill((0, 0, 0))
+    summary_str = (
+        f"Correct:   {correct_pct:.2f}    "
+        f"Incorrect: {incorrect_pct:.2f}    "
+        f"Timeout:   {timeout_pct:.2f}"
+    )
+    surf = font.render(summary_str, True, (225, 225, 225))
+    rect = surf.get_rect(center=(x_center, y_center))
+    screen.blit(surf, rect)
     pygame.display.flip()
 
     waiting = True
@@ -921,6 +1065,7 @@ def run_decoding_ctrl_mode(basename):
         for ev in pygame.event.get():
             if ev.type == pygame.KEYDOWN:
                 waiting = False
+
     send_tid(20)
 
     # print("Confusion Matrix:")
@@ -948,7 +1093,15 @@ def run_decoding_ctrl_mode(basename):
     pygame.quit()
 def run_test_mode(basename):
     print("Running in TESTING mode...")
-
+    # --- Controller init ---
+    pygame.joystick.init()
+    js = None
+    if pygame.joystick.get_count() > 0:
+        js = pygame.joystick.Joystick(0)
+        js.init()
+        print("Joystick connected:", js.get_name())
+    else:
+        print("No joystick detected")
     disp = utils.init_display()
     screen        = disp.screen
     pixels_per_cm = disp.pixels_per_cm
@@ -983,7 +1136,8 @@ def run_test_mode(basename):
     responses = []
     trial_idx = 0
     run            = True
-
+    pygame.mouse.set_visible(False)
+    
     while run and trial_idx < config.n_trials:
         # global quit (ESC)
         for event in pygame.event.get():
@@ -1104,19 +1258,54 @@ def run_test_mode(basename):
                         run       = False
                         break
 
-                    if ev.type == pygame.MOUSEBUTTONDOWN and not resp_recorded:
-                        trial_end    = True
-                        resp_recorded = True
+                    if not resp_recorded:
 
-                        if ev.button == 1:
-                            is_correct = (dot_correct == 0)
-                        elif ev.button == 3:
-                            is_correct = (dot_correct == 1)
+                        recorded_this_event = False
 
-                        response     = 1 if is_correct else 2
-                        trigger_code = 11 if is_correct else 12
-                        utils.add_trigger(64, trial_idx)
-                        break
+                        # Mouse clicks
+                        if ev.type == pygame.MOUSEBUTTONDOWN:
+                            if ev.button == 1:          # left click
+                                trial_end = True
+                                resp_recorded = True
+                                is_correct = (dot_correct == 0)
+                                recorded_this_event = True
+
+                            elif ev.button == 3:        # right click
+                                trial_end = True
+                                resp_recorded = True
+                                is_correct = (dot_correct == 1)
+                                recorded_this_event = True
+
+                            else:
+                                continue  # ignore other mouse buttons
+
+                        # Controller bumpers
+                        elif ev.type == pygame.JOYBUTTONDOWN:
+                            # print("BUTTON", ev.button)  # debug if you want
+                            if ev.button == 4:          # LB
+                                trial_end = True
+                                resp_recorded = True
+                                is_correct = (dot_correct == 0)
+                                recorded_this_event = True
+
+                            elif ev.button == 5:        # RB
+                                trial_end = True
+                                resp_recorded = True
+                                is_correct = (dot_correct == 1)
+                                recorded_this_event = True
+
+                            else:
+                                continue  # ignore other controller buttons
+
+                        else:
+                            continue  # not an input event we care about
+
+                        # Only compute response if we actually recorded one
+                        if recorded_this_event:
+                            response     = 1 if is_correct else 2
+                            trigger_code = 11 if is_correct else 12
+                            utils.add_trigger(64, trial_idx)
+                            break
         screen.fill((0, 0, 0))
         if response == 1:
             response_text = 'Correct'

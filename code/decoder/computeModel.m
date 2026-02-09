@@ -56,6 +56,11 @@ cfg.spectralFilter.a = a;
 
 for i = 1:numel(fields)
     fname = fields{i};
+    if ~isfield(data, fname) || ~isfield(data.(fname), 'data')
+        warning('Skipping field "%s": data.%s.data does not exist.', ...
+                fname, fname);
+        continue
+    end
     data.(fname).data = filter(b, a, data.(fname).data);
 end
 
@@ -64,7 +69,11 @@ for i = 1:numel(fields)
     
     fname = fields{i};
     d = data.(fname);
-    
+    if ~isfield(data, fname) || ~isfield(data.(fname), 'index')
+        warning('Skipping field "%s": data.%s.index does not exist.', ...
+                fname, fname);
+        continue
+    end
     epochs.data = nan(length(cfg.epochSamples), length(cfg.chanLabels), length(d.index.pos));
     epochs.labels = d.index.typ;
     epochs.file_id = nan(length(d.index.typ), 1);
@@ -76,12 +85,12 @@ for i = 1:numel(fields)
     
     data.(fname).epochs = epochs;
     data.(fname).epochs.eof = d.eof;
-    if isfield(d, 'beh') && isfield(d.beh, 'RT')
-        data.(fname).epochs.RT = d.beh.RT;
-    end
-    if isfield(d, 'beh') && isfield(d.beh, 'tpos')
-        data.(fname).epochs.RT = d.beh.RT;
-    end
+%     if isfield(d, 'beh') && isfield(d.beh, 'RT')
+%         data.(fname).epochs.RT = d.beh.RT;
+%     end
+%     if isfield(d, 'beh') && isfield(d.beh, 'tpos')
+%         data.(fname).epochs.RT = d.beh.RT;
+%     end
 end
 
 %% ================== Classification Setup ==================== %%

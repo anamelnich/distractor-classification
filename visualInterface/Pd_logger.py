@@ -20,7 +20,7 @@ class TrialLogger:
         self._triggers      = []
 
     def log_trial(self, trial_idx, task, feedback, tpos, dpos, dot_correct, ITI,BCI_output=None):
-        if config.MODE != "decode" or BCI_output is None:
+        if config.MODE not in ("decode", "decode_ctrl") or BCI_output is None:
             BCI_output = 99
         self._lines_analyze.append(
             f"{trial_idx+1} {task} {feedback} {tpos} {dpos} {dot_correct} {ITI} {BCI_output}"

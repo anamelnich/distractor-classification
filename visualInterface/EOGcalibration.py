@@ -5,11 +5,11 @@ import math
 from python_client import Trigger
 
 # Trigeers
-# fixation 6
-# dot top 100
-# dot right 101
-# dot bottom 102
-# dot left 103
+# fixation 4
+# dot top 8
+# dot right 32
+# dot bottom 44
+# dot left 64
 
 def degrees_to_pixels(degrees, viewing_distance_cm, pixels_per_cm):
     radians = math.radians(degrees)

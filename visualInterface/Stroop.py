@@ -37,6 +37,11 @@ audio_queue = queue.Queue()
 
 # Initialize Vosk model
 try:
+
+    MODEL_PATH = os.path.abspath("./vosk/vosk-model-small-en-us-0.15")
+    print("Using MODEL_PATH:", MODEL_PATH)
+    model = Model(MODEL_PATH)
+
     model = Model("./vosk/vosk-model-small-en-us-0.15")
 
     # vocabulary = '["red", "green", "blue", "yellow"]'
