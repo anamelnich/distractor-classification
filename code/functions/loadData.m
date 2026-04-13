@@ -29,6 +29,13 @@ for d = 1:numel(dayFolders)
     subNames = setdiff({subDirs([subDirs.isdir]).name}, {'.','..'});
     for iSub = 1:numel(subNames)
         sub = subNames{iSub};
+        tk2 = regexp(sub, ['^' subjectID '_\d{14}_(\w+)$'], 'tokens');
+        if isempty(tk2)
+            fprintf('SKIP (regex no match): %s\n', sub);
+            continue;
+        end
+
+
         subP = fullfile(dayPath, sub);
         tk2 = regexp(sub, ['^' subjectID '_\d{14}_(\w+)$'], 'tokens');
         if isempty(tk2), continue; end
@@ -43,21 +50,28 @@ for d = 1:numel(dayFolders)
             eeg.data   = sig;
             eeg.header = hdr;
             eeg.eof    = size(sig,1);
+        else
+            fprintf('MISSING GDF: %s\n', subP);
         end
 
         % load behavior
         beh = [];
+    
         switch taskType
             case 'stroop'
                 f = fullfile(subP, [sub '.behoutput.txt']);
-                if isfile(f)
+                if ~isfile(f)
+                    fprintf('MISSING stroop beh: %s\n', f);
+                else
                     beh = loadStroop(f);
                 end
             case {'training','decoding','validation'}
                 af = fullfile(subP, [sub '.analysis.txt']);
                 tf = fullfile(subP, [sub '.triggers.txt']);
+                if ~isfile(af), fprintf('MISSING analysis: %s\n', af); end
+                if ~isfile(tf), fprintf('MISSING triggers: %s\n', tf); end
                 if isfile(af) && isfile(tf)
-                    beh = loadAnalysis(af, tf, taskType);
+                    beh = loadAnalysis(af, tf, taskType,subjectID);
                 end
         end
 
@@ -129,7 +143,7 @@ function beh = loadStroop(file)
 end
 
 %% ─── Subfunction: loadAnalysis ───────────────────────────────────────────
-function beh = loadAnalysis(analysisFile, triggersFile, taskType)
+function beh = loadAnalysis(analysisFile, triggersFile, taskType, subjectID)
     % Read behavioral and trigger data
     A = readmatrix(analysisFile);
     Traw = readmatrix(triggersFile);
@@ -171,10 +185,11 @@ function beh = loadAnalysis(analysisFile, triggersFile, taskType)
         
         starts = triggers(ismember(triggers(:,2), [8 32 44]), 3);
         resp   = triggers(triggers(:,2)==64,3);
- 
+        fprintf('[%s] %s: #starts=%d, #resp=%d\n', subjectID, taskType, numel(starts), numel(resp));
+
         beh.RT = resp - starts;
     catch ME
-        warning('Error computing RT for %s: %s', taskType, ME.message);
+        warning('Error computing RT for %s %s: %s', subjectID,taskType, ME.message);
     end
 end
 

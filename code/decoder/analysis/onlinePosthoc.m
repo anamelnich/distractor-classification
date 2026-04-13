@@ -1,38 +1,184 @@
 
 %% Load thresholds
-t = load(sprintf('./../../cnbiLoop/online_info/%s_thrlog.mat',subjectID));
+% --- Load ---
+t = load(sprintf('./../../cnbiLoop/online_info/%s_thrlog.mat', subjectID));
 thrLog = t.thrLog;
 
-vals = num2cell(1-[thrLog.thrN]);
+% Flip thrN (your existing step)
+vals = num2cell(1 - [thrLog.thrN]);
 [thrLog.thrN] = vals{:};
 
+% --- Parse timestamps ---
 d = {thrLog.timestamp}';
-d = datetime(d,'InputFormat','yyyy-MM-dd HH:mm:ss');
+d = datetime(d, 'InputFormat', 'yyyy-MM-dd HH:mm:ss');
 
-sessKey = dateshift(d,'start','day');
-G = findgroups(sessKey);
+% Put into a table for easier cleaning + stable indexing
+T = table((1:numel(thrLog))', d, 'VariableNames', {'origIdx','dt'});
+T.dayKey = dateshift(T.dt, 'start', 'day');
 
-% run index within each session (wrap vector outputs in cells, then concat)
-idxCells  = splitapply(@(x) {(1:numel(x))'}, d, G);
-runInSess = vertcat(idxCells{:});
+% Sort globally so "session order" is chronological
+T = sortrows(T, 'dt');
 
-for i = 1:numel(thrLog)
-    thrLog(i).Session = G(i);
-    thrLog(i).Run     = runInSess(i);
+% Session grouping = day
+[G, dayList] = findgroups(T.dayKey);
+
+% Expected runs per session (session 1..5 in chronological order)
+expectedRuns = [6 8 8 8 6];
+
+% Track removals (optional but useful for debugging)
+T.removed_bug     = false(height(T),1);
+T.removed_practice = false(height(T),1);
+
+% --- Pass 1: remove bug rows (within-session dt < 4 minutes) ---
+minGap = minutes(4);
+
+for g = 1:max(G)
+    idx = find(G == g);
+    if numel(idx) < 2, continue; end
+
+    dtDiff  = diff(T.dt(idx));
+    badNext = dtDiff < minGap;      % small gap between consecutive rows
+    badPrev = [badNext; false];     % drop the EARLIER row in each bad pair
+    badRows = idx(badPrev);
+
+    T.removed_bug(badRows) = true;
 end
 
-%% Load posteriors
-% p1 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251008.mat',subjectID));
-% p2 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251009.mat',subjectID));
-% p3 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251010.mat',subjectID));
-% p4 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251011.mat',subjectID));
-% p5 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251013.mat',subjectID));
-p1 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251013.mat',subjectID));
-p2 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251014.mat',subjectID));
-p3 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251015.mat',subjectID));
-p4 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251016.mat',subjectID));
-p5 = load(sprintf('./../../cnbiLoop/online_info/%s_OnlinePosteriors_20251017.mat',subjectID));
+% Drop bug rows
+T = T(~T.removed_bug, :);
 
+% Recompute groups after dropping rows
+[G, dayList] = findgroups(T.dayKey);
+
+% --- Pass 2: remove practice if session has more runs than expected ---
+nSess = max(G);
+for g = 1:nSess
+    idx = find(G == g);
+    nRuns = numel(idx);
+
+    if g <= numel(expectedRuns)
+        expN = expectedRuns(g);
+    else
+        % If you ever have >5 sessions, default to "no expectation"
+        expN = nRuns;
+    end
+
+    if nRuns > expN
+        % Assume practice is the first row in that session
+        firstRow = idx(1);
+        T.removed_practice(firstRow) = true;
+    end
+end
+
+% Drop practice rows
+T = T(~T.removed_practice, :);
+
+% Recompute groups after dropping rows
+[G, dayList] = findgroups(T.dayKey);
+
+% --- Assign Session/Run on cleaned set ---
+T.Session = G;
+
+% run index within each session
+runCells = splitapply(@(x){(1:numel(x))'}, T.dt, G);
+T.Run = vertcat(runCells{:});
+
+% --- Write back into thrLog (cleaned) ---
+thrLog_clean = thrLog(T.origIdx); % keep only surviving rows, original structs
+for i = 1:numel(thrLog_clean)
+    thrLog_clean(i).Session = T.Session(i);
+    thrLog_clean(i).Run     = T.Run(i);
+end
+thrLog = thrLog_clean;
+clear thrLog_clean
+% (Optional) sanity printout
+counts = splitapply(@numel, T.Run, T.Session);
+disp(table((1:numel(counts))', counts, 'VariableNames', {'Session','NumRuns'}));
+
+
+
+%% Load posteriors
+
+opDir = './../../cnbiLoop/online_info';
+
+F = dir(fullfile(opDir, sprintf('%s_OnlinePosteriors_*.mat', subjectID)));
+if isempty(F)
+    error('No OnlinePosteriors files found for %s in %s', subjectID, opDir);
+end
+
+fn = {F.name};
+pat = ['^' regexptranslate('escape',subjectID) '_OnlinePosteriors_(\d{8})\.mat$'];
+tok = regexp(fn, pat, 'tokens');
+
+% keep only matching files
+isMatch = ~cellfun(@isempty, tok);
+F = F(isMatch);
+tok = tok(isMatch);
+
+if numel(F) < 5
+    error('Found only %d matching OnlinePosteriors files for %s (need 5). Check filenames in %s.', ...
+        numel(F), subjectID, opDir);
+end
+
+dates = cellfun(@(c) str2double(c{1}{1}), tok);
+
+% sort by date
+[~, ord] = sort(dates);
+F = F(ord);
+
+% load first five
+p1 = load(fullfile(F(1).folder, F(1).name));
+p2 = load(fullfile(F(2).folder, F(2).name));
+p3 = load(fullfile(F(3).folder, F(3).name));
+p4 = load(fullfile(F(4).folder, F(4).name));
+p5 = load(fullfile(F(5).folder, F(5).name));
+
+% Put them in a cell so we can loop
+P = {p1, p2, p3, p4, p5};
+
+% expected #rows per session
+expectedN = [360 480 480 480 360];
+trialPerRun = 60;
+
+for s = 1:numel(P)
+
+    % --- Get the numeric matrix (nTrials x 3) from the loaded struct ---
+    fn = fieldnames(P{s});
+    A  = P{s}.(fn{1});   % assumes the .mat contains exactly one main variable
+
+    if size(A,2) ~= 3
+        warning('Session %d: expected N x 3, but got %d x %d.', s, size(A,1), size(A,2));
+    end
+
+    n = size(A,1);
+    expN = expectedN(s);
+
+    if n < expN
+        warning('Session %d: OnlinePosteriors has %d rows, expected %d. Leaving as-is.', s, n, expN);
+
+    elseif n > expN
+        if n >= trialPerRun
+            warning('Session %d: OnlinePosteriors has %d rows (> %d). Removing first %d rows (practice).', ...
+                s, n, expN, trialPerRun);
+            A = A(trialPerRun+1:end, :);
+        else
+            warning('Session %d: has %d rows (> expected) but < %d, cannot drop first run cleanly. Leaving as-is.', ...
+                s, n, trialPerRun);
+        end
+    end
+
+    % Optional sanity check: should be multiple of 60 after cleaning
+    if mod(size(A,1), trialPerRun) ~= 0
+        warning('Session %d: after cleaning, %d rows is not a multiple of %d.', ...
+            s, size(A,1), trialPerRun);
+    end
+
+    % Write back into the same struct (preserve variable name)
+    P{s}.(fn{1}) = A;
+end
+
+% Unpack back out if you still want p1..p5 variables
+p1 = P{1}; p2 = P{2}; p3 = P{3}; p4 = P{4}; p5 = P{5};
 
 %%
 % === Config ===
@@ -177,9 +323,12 @@ Margin = [S.margin]';
 ThrR   = [S.thrR]';
 ThrL   = [S.thrL]';
 ThrN   = [S.thrN]';
+Timestamp = datetime({S.timestamp}', ...
+    'InputFormat','yyyy-MM-dd HH:mm:ss');
 
-T = table(Session, Run, Margin, ThrR, ThrL, ThrN, d, ...
-    'VariableNames', {'Session','Run','Margin','ThresholdR','ThresholdL','ThresholdN','Timestamp'});
+T = table(Session, Run, Margin, ThrR, ThrL, ThrN, Timestamp, ...
+    'VariableNames', ...
+    {'Session','Run','Margin','ThresholdR','ThresholdL','ThresholdN','Timestamp'});
 
 %% === Concatenate thresholds/margin to mirror concat_x timeline ===
 thrR_all = []; thrL_all = []; thrN_all = []; marg_all = [];
@@ -428,24 +577,31 @@ colPRC0  = [0.40 0.40 0.40];  % gray
 
 xS = 1:numel(sessions);
 
-figS = figure('Color','w','Units','inches','Position',[1 1 7.5 4.5]); % larger canvas
+figS = figure('Color','w','Units','inches','Position',[1 1 7.5 4.5]);
 tiledlayout(1,1,'Padding','tight','TileSpacing','compact');
-nexttile;
+nexttile; hold on;
 
-% Left axis: AUROC
-yyaxis left
-p1 = plot(xS, auc_session, '-o', 'Color', colAUC, 'MarkerSize', 5.5, 'LineWidth', 2.0, 'DisplayName','AUROC');
-hold on;
-yline(0.5,'--','ROC Chance','Alpha',0.7,'Color',[0.5 0.5 0.5],'FontSize',12);
-ylim([max(0.45, min([auc_session; 0.5]) - 0.03), min(1, max([auc_session; 0.5]) + 0.03)]);
-ylabel('AUROC','FontSize',15,'FontWeight','bold');
+% AUROC
+p1 = plot(xS, auc_session, '-o', ...
+    'Color', colAUC, 'MarkerSize', 5.5, 'LineWidth', 2.0, ...
+    'DisplayName','AUROC');
 
-% Right axis: AUPRC (+ prevalence markers)
-yyaxis right
-p2 = plot(xS, auprc_session, '-s', 'Color', colAUPRC, 'MarkerSize', 5.5, 'LineWidth', 2.0, 'DisplayName','AUPRC'); hold on;
-p3 = plot(xS, pr_chance, ':^', 'Color', colPRC0, 'MarkerSize', 5, 'LineWidth', 1.8, 'DisplayName','PR chance (prevalence)');
-ylim([max(0.45, min([auprc_session; pr_chance]) - 0.03), min(1, max([auprc_session; pr_chance]) + 0.03)]);
-ylabel('AUPRC','FontSize',15,'FontWeight','bold');
+% AUPRC
+p2 = plot(xS, auprc_session, '-s', ...
+    'Color', colAUPRC, 'MarkerSize', 5.5, 'LineWidth', 2.0, ...
+    'DisplayName','AUPRC');
+
+% PR chance (prevalence)
+p3 = plot(xS, pr_chance, ':^', ...
+    'Color', colPRC0, 'MarkerSize', 5, 'LineWidth', 1.8, ...
+    'DisplayName','PR chance');
+
+% Chance line (shared)
+yline(0.5,'--','Chance','Alpha',0.7, ...
+    'Color',[0.5 0.5 0.5],'FontSize',12);
+
+ylim([0.45 0.80]);
+ylabel('AUC','FontSize',15,'FontWeight','bold');
 
 grid on; box off;
 xticks(xS);
@@ -461,13 +617,135 @@ else
     xlbl = arrayfun(@(k) sprintf('S%d', k), 1:numel(sessions), 'UniformOutput', false);
 end
 xticklabels(xlbl);
-xlabel('Session','FontSize',15,'FontWeight','bold');
-title('Per-Session AUROC & AUPRC (Ambivalent ignored)','FontSize',17,'FontWeight','bold');
 
-lgd = legend([p1 p2 p3], {'AUROC','AUPRC','PR Chance'}, 'Location','northeastoutside');
+xlabel('Session','FontSize',15,'FontWeight','bold');
+title('Per-Session performance (Ambivalent ignored)', ...
+      'FontSize',15,'FontWeight','bold');
+
+lgd = legend([p1 p2 p3], ...
+    {'AUROC','AUPRC','PR Chance'}, ...
+    'Location','northeastoutside');
 set(lgd,'Box','off','AutoUpdate','off','FontSize',13);
 
-%% ERP waveform pre vs post BCI
+
+%% RT comparison for distractor task %%%%%%%%
+
+calibData = data.training1;
+finalData = data.training2;
+
+% Calibration
+rtC_nd = calibData.beh.RT(calibData.beh.trial_type == 0);
+rtC_d  = calibData.beh.RT(calibData.beh.trial_type == 1);
+
+mC_nd = mean(rtC_nd, 'omitnan');
+mC_d  = mean(rtC_d,  'omitnan');
+diffC = mC_nd - mC_d;
+
+% Final
+rtF_nd = finalData.beh.RT(finalData.beh.trial_type == 0);
+rtF_d  = finalData.beh.RT(finalData.beh.trial_type == 1);
+
+mF_nd = mean(rtF_nd, 'omitnan');
+mF_d  = mean(rtF_d,  'omitnan');
+diffF = mF_nd - mF_d;
+mC = [mC_nd mC_d];
+mF = [mF_nd mF_d];
+barData = [mC; mF];
+%%
+figure('Color','w','Units','inches','Position',[1 1 4.2 4]); hold on;
+
+barData = [mC; mF];   % rows = calib/final, cols = ND/D
+b = bar(barData,'grouped');
+xticks(1:2);
+xticklabels({'Pre','Post'});
+b(1).FaceColor = cfg.plotColor{5};   % No distractor
+b(2).FaceColor = cfg.plotColor{1};  % Distractor
+
+
+ylabel('Reaction Time');
+legend({'No distractor','Distractor'},'Location','northwest');
+title('Mean RT by Trial Type');
+ylim([400 800]);
+grid on; box off;
+
+figure('Color','w','Units','inches','Position',[1 1 4.2 4]);
+
+bar([diffC, diffF], 'FaceColor',[0.4 0.4 0.4]);
+set(gca,'XTickLabel',{'Pre','Post'});
+ylabel('\Delta RT (No distractor − Distractor)', 'Interpreter','tex');
+title('Distractor Cost');
+yline(0,'--','Color',[0.5 0.5 0.5]);
+ylim([-80, 80]);
+grid on; box off;
+
+%% Stroop Results
+
+stroopCalib = data.stroop1;
+stroopFinal = data.stroop2;
+
+respC = stroopCalib.beh.Response;
+keepC = (respC == 1);
+
+ttC = stroopCalib.beh.Trial_Type(keepC);
+rtC = stroopCalib.beh.Reaction_Time(keepC);
+
+% make sure trial types are strings for strcmpi
+ttC = string(ttC);
+
+rtC_cong = rtC(strcmpi(ttC,'congruent'));
+rtC_inc  = rtC(strcmpi(ttC,'incongruent'));
+
+mC = [mean(rtC_cong,'omitnan'), mean(rtC_inc,'omitnan')];
+diffC = mC(2) - mC(1);   % Incongruent − Congruent
+
+
+respF = stroopFinal.beh.Response;
+keepF = (respF == 1);
+
+ttF = stroopFinal.beh.Trial_Type(keepF);
+rtF = stroopFinal.beh.Reaction_Time(keepF);
+
+ttF = string(ttF);
+
+rtF_cong = rtF(strcmpi(ttF,'congruent'));
+rtF_inc  = rtF(strcmpi(ttF,'incongruent'));
+
+mF = [mean(rtF_cong,'omitnan'), mean(rtF_inc,'omitnan')];
+diffF = mF(2) - mF(1);
+
+figure('Color','w','Units','inches','Position',[1 1 4 4]); hold on;
+
+barData = [mC; mF];   % rows = pre/post, cols = cong/inc
+b = bar(barData,'grouped');
+
+b(1).FaceColor = [0.3 0.7 0.4];   % Congruent
+b(2).FaceColor = [0.8 0.3 0.3];   % Incongruent
+
+xticks(1:2);
+xticklabels({'Pre','Post'});
+
+ylabel('Reaction Time');
+legend({'Congruent','Incongruent'},'Location','northwest');
+title('Stroop RT by Trial Type');
+ylim([400 900]);
+grid on; box off;
+
+figure('Color','w','Units','inches','Position',[1 1 4 4]); hold on;
+
+bar([diffC diffF],'FaceColor',[0.4 0.4 0.4]);
+
+xticks(1:2);
+xticklabels({'Pre','Post'});
+
+ylabel('Δ RT (Incongruent − Congruent)');
+title('Stroop Effect');
+yline(0,'--','Color',[0.5 0.5 0.5]);
+ylim([0 200]);
+
+grid on; box off;
+
+%% %%%%%% Pd plots %%%%%%%%%
+
 calibData = safeCombine(data, 'training1');
 finalData   = safeCombine(data, 'training2');
 on1Data   = safeCombine(data, 'decoding1');
@@ -477,9 +755,16 @@ on4Data   = safeCombine(data, 'decoding4');
 on5Data   = safeCombine(data, 'decoding5');
 load(sprintf('./../decoders/%s_decoderL.mat',subjectID));
 load(sprintf('./../decoders/%s_decoderR.mat',subjectID));
-panelNames = {'Pre BCI','Post BCI'};
-%%
-plotERPOffvsOnlineAllD_xDAWN(calibData, finalData, cfg, decoderL, decoderR, panelNames,1)
+load(sprintf('./../decoders/%s_decoderN.mat',subjectID));
+panelNames = {"Pre BCI","Post BCI"};
+
+comparePd_rawPO78(data.training1,data.training2,cfg)
+plotERPOffvsOnlineAllD_xDAWN(calibData, finalData, cfg, decoderL, decoderR, decoderN, panelNames,1)
+
+load('chanlocs64.mat')
+out = computePdR2_pairDiffTopos(data.training1, cfg, chanlocs);
+
+
 
 %% %% Helper functions 
 function out = safeCombine(data, topField)

@@ -65,7 +65,7 @@ if ~isGroup
         ax = nexttile; hold(ax,'on');
         D  = datasets{p};
 
-        [waveD, waveND, RTd, RTn] = local_xdawn_subject(D.epochs, params, WL, WR, WN, lIdx, rIdx);
+        [waveD, waveND, RTd, RTn] = local_xdawn_subject(D, params, WL, WR, WN, lIdx, rIdx);
 
         % Shaded analysis window (example)
         patch(ax,[0.15 0.5 0.5 0.15], [yL(1) yL(1) yL(2) yL(2)], ...

@@ -9,7 +9,7 @@ addpath(genpath('../functions'));
 %% Load Data 
 
 dataPath = [pwd '/../../data/'];
-data = loadData(dataPath, subjectID);
+data = loadData_box(dataPath, subjectID);
 delete sopen.mat
 
 %% Set Parameters andPreprocess

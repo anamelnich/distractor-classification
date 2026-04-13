@@ -3,6 +3,15 @@ code/cnbiLoop/online_decoders/*
 code/decoder/figures/*
 !code/decoder/figures/.gitkeep
 code/decoder/results/
-data/
+data/*
+!data/.gitkeep
+code/decoder/analysis/cache/*
+!code/decoder/analysis/cache/.gitkeep
 .DS_Store
 code/cnbiLoop/.DS_Store
+figures_postproc/*
+!figures_postproc/.gitkeep
+code/decoder/data/*
+!code/decoder/data/.gitkeep
+code/cnbiLoop/online_info/*
+!code/cnbiLoop/online_info/.gitkeep
