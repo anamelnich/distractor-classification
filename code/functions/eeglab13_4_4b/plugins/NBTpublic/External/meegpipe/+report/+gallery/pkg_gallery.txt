@@ -1,4 +1,0 @@
-Package: gallery
-============
-
-[[Parent]]: pkg_report.txt

@@ -1,4 +1,0 @@
-rotateticklabel
-===============================
-
-Andrea Bliss' rotateticklabel

@@ -1,9 +1,0 @@
-# 
-# Global variables for package filter.plotter.fvtool2
-#
-
-# Construction defaults for class bad_samples
-BlackBgPlots    false
-SVG             true
-PrintDrivers    {}
-Visible         false

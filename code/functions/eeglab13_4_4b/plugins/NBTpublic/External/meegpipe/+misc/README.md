@@ -1,4 +1,0 @@
-misc
-===========
-
-Miscellaneous MATLAB utilities

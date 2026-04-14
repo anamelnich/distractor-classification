@@ -1,4 +1,0 @@
-Class: mri
-============
-
-[[Parent]]: pkg_head.txt
